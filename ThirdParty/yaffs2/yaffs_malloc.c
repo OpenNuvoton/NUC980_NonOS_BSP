@@ -21,7 +21,7 @@
 
 #include "malloc.h"
 
-unsigned yaffs_trace_mask = 0; /* Disable logging */
+//unsigned yaffs_trace_mask = 0; /* Disable logging */
 
 /***************************************/
 
@@ -204,48 +204,6 @@ void yaffs_free(void *ptr)
 	return;
 }
 
-/*======================================================================*/
-static int yaffs_errno;
-
-void yaffs_bug_fn(const char *fn, int n)
-{
-	printf("yaffs bug at %s:%d\n", fn, n);
-}
-
-void yaffsfs_SetError(int err)
-{
-	yaffs_errno = err;
-}
-
-int yaffsfs_GetLastError(void)
-{
-	return yaffs_errno;
-}
-
-
-int yaffsfs_GetError(void)
-{
-	return yaffs_errno;
-}
-
-void yaffsfs_Lock(void)
-{
-}
-
-void yaffsfs_Unlock(void)
-{
-}
-
-__u32 yaffsfs_CurrentTime(void)
-{
-	return 0;
-}
-
-
-void yaffsfs_LocalInitialisation(void)
-{
-	/* No locking used */
-}
 
 
 

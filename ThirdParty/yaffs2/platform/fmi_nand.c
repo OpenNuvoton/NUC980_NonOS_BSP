@@ -38,18 +38,14 @@
 #define BCH_PADDING_LEN_512     32
 #define BCH_PADDING_LEN_1024    64
 // define the BCH parity code lenght for 512 bytes data pattern
-#define BCH_PARITY_LEN_T4  8
 #define BCH_PARITY_LEN_T8  15
 #define BCH_PARITY_LEN_T12 23
-#define BCH_PARITY_LEN_T15 29
 // define the BCH parity code lenght for 1024 bytes data pattern
 #define BCH_PARITY_LEN_T24 45
 
 
-#define BCH_T15   0x00400000
 #define BCH_T12   0x00200000
 #define BCH_T8    0x00100000
-#define BCH_T4    0x00080000
 #define BCH_T24   0x00040000
 
 
@@ -65,12 +61,11 @@ struct nuvoton_nand_info *nuvoton_nand;
 
 static struct nand_ecclayout nuvoton_nand_oob;
 
-static const int g_i32BCHAlgoIdx[5] = { BCH_T4, BCH_T8, BCH_T12, BCH_T15, BCH_T24 };
-static const int g_i32ParityNum[4][5] = {
-    { 8,    15,     23,     29,     -1  },  // For 512
-    { 32,   60,     92,     116,    90  },  // For 2K
-    { 64,   120,    184,    232,    180 },  // For 4K
-    { 128,  240,    368,    464,    360 },  // For 8K
+static const int g_i32BCHAlgoIdx[3] = { BCH_T8, BCH_T12, BCH_T24 };
+static const int g_i32ParityNum[3][3] = {
+    { 60,     92,     90  },  // For 2K
+    { 120,    184,    180 },  // For 4K
+    { 240,    368,    360 },  // For 8K
 };
 
 extern uint32_t get_ticks(void);
@@ -304,11 +299,6 @@ void fmiSM_CorrectData_BCH(u8 ucFieidIndex, u8 ucErrorCnt, u8* pDAddr)
             padding_len = BCH_PADDING_LEN_1024;
             parity_len  = BCH_PARITY_LEN_T24;
             break;
-        case BCH_T15:
-            field_len   = 512;
-            padding_len = BCH_PADDING_LEN_512;
-            parity_len  = BCH_PARITY_LEN_T15;
-            break;
         case BCH_T12:
             field_len   = 512;
             padding_len = BCH_PADDING_LEN_512;
@@ -318,11 +308,6 @@ void fmiSM_CorrectData_BCH(u8 ucFieidIndex, u8 ucErrorCnt, u8* pDAddr)
             field_len   = 512;
             padding_len = BCH_PADDING_LEN_512;
             parity_len  = BCH_PARITY_LEN_T8;
-            break;
-        case BCH_T4:
-            field_len   = 512;
-            padding_len = BCH_PADDING_LEN_512;
-            parity_len  = BCH_PARITY_LEN_T4;
             break;
         default:
             return;
@@ -561,7 +546,7 @@ static __inline int _nuvoton_nand_dma_transfer(struct mtd_info *mtd, const u_cha
  * @chip:       nand chip info structure
  * @buf:        data buffer
  */
-static void nuvoton_nand_write_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip, const uint8_t *buf)
+static int nuvoton_nand_write_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip, const uint8_t *buf, int oob_required, int page)
 {
     uint8_t *ecc_calc = chip->buffers->ecccalc;
     uint32_t hweccbytes=chip->ecc.layout->eccbytes;
@@ -578,6 +563,8 @@ static void nuvoton_nand_write_page_hwecc(struct mtd_info *mtd, struct nand_chip
 
     // Copy parity code in calc to oob_poi
     memcpy ( (void*)(chip->oob_poi+hweccbytes), (void*)ecc_calc, chip->ecc.total);
+
+    return 0;
 }
 
 /**
@@ -587,7 +574,7 @@ static void nuvoton_nand_write_page_hwecc(struct mtd_info *mtd, struct nand_chip
  * @buf:        buffer to store read data
  * @page:       page number to read
  */
-static int nuvoton_nand_read_page_hwecc_oob_first(struct mtd_info *mtd, struct nand_chip *chip, uint8_t *buf, int page)
+static int nuvoton_nand_read_page_hwecc_oob_first(struct mtd_info *mtd, struct nand_chip *chip, uint8_t *buf, int oob_required, int page)
 {
     int eccsize = chip->ecc.size;
     uint8_t *p = buf;
@@ -619,22 +606,19 @@ static int nuvoton_nand_read_page_hwecc_oob_first(struct mtd_info *mtd, struct n
  * @page:       page number to read
  * @sndcmd:     flag whether to issue read command or not
  */
-static int nuvoton_nand_read_oob_hwecc(struct mtd_info *mtd, struct nand_chip *chip, int page, int sndcmd)
+static int nuvoton_nand_read_oob_hwecc(struct mtd_info *mtd, struct nand_chip *chip, int page)
 {
     char * ptr=(char *)REG_NANDRA0;
 
     /* At first, read the OOB area  */
-    if ( sndcmd ) {
-        nuvoton_nand_command(mtd, NAND_CMD_READOOB, 0, page);
-        sndcmd = 0;
-    }
+    nuvoton_nand_command(mtd, NAND_CMD_READOOB, 0, page);
 
     nuvoton_nand_read_buf(mtd, chip->oob_poi, mtd->oobsize);
 
     // Second, copy OOB data to SMRA for page read
     memcpy ( (void*)ptr, (void*)chip->oob_poi, mtd->oobsize );
 
-    return sndcmd;
+    return 0;
 }
 
 
@@ -679,25 +663,17 @@ int board_nand_init(struct nand_chip *nand)
     nand->ecc.read_page = nuvoton_nand_read_page_hwecc_oob_first;
     nand->ecc.read_oob  = nuvoton_nand_read_oob_hwecc;
     nand->ecc.layout    = &nuvoton_nand_oob;
+    nand->ecc.strength  = 8;
+    mtd = nand_to_mtd(nand);
 
     mtd->priv = nand;
 
     /* initial NAND controller */
     outpw(REG_CLK_HCLKEN, (inpw(REG_CLK_HCLKEN) | 0x300000));
 
-    /* select NAND function pins */
-    if (inpw(REG_SYS_PWRON) & 0x08000000)
-    {
-        /* Set GPI1~15 for NAND */
-        outpw(REG_SYS_GPI_MFPL, 0x55555550);
-        outpw(REG_SYS_GPI_MFPH, 0x55555555);
-    }
-    else
-    {
-        /* Set GPC0~14 for NAND */
-        outpw(REG_SYS_GPC_MFPL, 0x55555555);
-        outpw(REG_SYS_GPC_MFPH, 0x05555555);
-    }
+    /* Set GPC1~15 for NAND */
+    outpw(REG_SYS_GPC_MFPL, (inpw(REG_SYS_GPC_MFPL) & 0xf) | 0x33333330);
+    outpw(REG_SYS_GPC_MFPH, 0x33333333);
 
     // Enable SM_EN
     outpw(REG_FMI_CTL, NAND_EN);
@@ -713,7 +689,7 @@ int board_nand_init(struct nand_chip *nand)
 
     /* Detect NAND chips */
     /* first scan to find the device and get the page size */
-    if (nand_scan_ident(&(nuvoton_nand->mtd), 1, NULL)) {
+    if (nand_scan_ident(mtd, 1, NULL)) {
         printf("NAND Flash not found !\n");
         return -1;
     }
@@ -722,34 +698,79 @@ int board_nand_init(struct nand_chip *nand)
     switch (mtd->writesize) {
         case 2048:
             outpw(REG_NANDCTL, (inpw(REG_NANDCTL)&(~0x30000)) + 0x10000);
-            nuvoton_nand->eBCHAlgo = 0; /* T4 */
-            nuvoton_layout_oob_table ( &nuvoton_nand_oob, mtd->oobsize, g_i32ParityNum[1][nuvoton_nand->eBCHAlgo] );
+            nuvoton_nand->eBCHAlgo = 0; /* T8 */
+            nuvoton_layout_oob_table ( &nuvoton_nand_oob, mtd->oobsize, g_i32ParityNum[0][nuvoton_nand->eBCHAlgo] );
             break;
 
         case 4096:
             outpw(REG_NANDCTL, (inpw(REG_NANDCTL)&(~0x30000)) + 0x20000);
-            nuvoton_nand->eBCHAlgo = 1; /* T8 */
-            nuvoton_layout_oob_table ( &nuvoton_nand_oob, mtd->oobsize, g_i32ParityNum[2][nuvoton_nand->eBCHAlgo] );
+            nuvoton_nand->eBCHAlgo = 0; /* T8 */
+            nuvoton_layout_oob_table ( &nuvoton_nand_oob, mtd->oobsize, g_i32ParityNum[1][nuvoton_nand->eBCHAlgo] );
             break;
 
         case 8192:
             outpw(REG_NANDCTL, (inpw(REG_NANDCTL)&(~0x30000)) + 0x30000);
-            nuvoton_nand->eBCHAlgo = 2; /* T12 */
-            nuvoton_layout_oob_table ( &nuvoton_nand_oob, mtd->oobsize, g_i32ParityNum[3][nuvoton_nand->eBCHAlgo] );
+            nuvoton_nand->eBCHAlgo = 1; /* T12 */
+            nuvoton_layout_oob_table ( &nuvoton_nand_oob, mtd->oobsize, g_i32ParityNum[2][nuvoton_nand->eBCHAlgo] );
             break;
-
-        /* Not support now. */
-        case 512:
 
         default:
             printf("NUVOTON NAND CONTROLLER IS NOT SUPPORT THE PAGE SIZE. (%d, %d)\n", mtd->writesize, mtd->oobsize );
     }
 
+    /* check power on setting */
+    if ((inpw(REG_SYS_PWRON) & 0x300) != 0x300)
+    {
+        switch (inpw(REG_SYS_PWRON) & 0x300)
+        {
+            case 0x000:
+                nuvoton_nand->eBCHAlgo = 0; /* T8 */
+                break;
+            case 0x100:
+                nuvoton_nand->eBCHAlgo = 1; /* T12 */
+                break;
+            case 0x200:
+                nuvoton_nand->eBCHAlgo = 2; /* T24 */
+                break;
+            default:
+                printf("wrong ECC power-on-setting\n");
+        }
+    }
+    if ((inpw(REG_SYS_PWRON) & 0xc0) != 0xc0)
+    {
+        switch (inpw(REG_SYS_PWRON) & 0xc0) 
+        {
+            case 0x00:
+                mtd->writesize = 2048;
+                outpw(REG_NANDCTL, (inpw(REG_NANDCTL)&(~0x30000)) + 0x10000);
+                mtd->oobsize = g_i32ParityNum[0][nuvoton_nand->eBCHAlgo] + 8;
+                nuvoton_layout_oob_table( &nuvoton_nand_oob, mtd->oobsize, g_i32ParityNum[0][nuvoton_nand->eBCHAlgo] );
+                break;
+
+            case 0x40:
+                mtd->writesize = 4096;
+                outpw(REG_NANDCTL, (inpw(REG_NANDCTL)&(~0x30000)) + 0x20000);
+                mtd->oobsize = g_i32ParityNum[1][nuvoton_nand->eBCHAlgo] + 8;
+                nuvoton_layout_oob_table ( &nuvoton_nand_oob, mtd->oobsize, g_i32ParityNum[1][nuvoton_nand->eBCHAlgo] );
+                break;
+
+            case 0x80:
+                mtd->writesize = 8192;
+                outpw(REG_NANDCTL, (inpw(REG_NANDCTL)&(~0x30000)) + 0x30000);
+                mtd->oobsize = g_i32ParityNum[2][nuvoton_nand->eBCHAlgo] + 8;
+                nuvoton_layout_oob_table ( &nuvoton_nand_oob, mtd->oobsize, g_i32ParityNum[2][nuvoton_nand->eBCHAlgo] );
+                break;
+
+            default:
+                printf("wrong NAND page power-on-setting\n");
+        }
+    }
     nuvoton_nand->m_i32SMRASize  = mtd->oobsize;
     nand->ecc.bytes = nuvoton_nand_oob.eccbytes;
     nand->ecc.size  = mtd->writesize;
 
     nand->options = 0;
+    nand->bbt_options = (NAND_BBT_USE_FLASH | NAND_BBT_NO_OOB);
 
     // Redundant area size
     outpw(REG_NANDRACTL, nuvoton_nand->m_i32SMRASize);

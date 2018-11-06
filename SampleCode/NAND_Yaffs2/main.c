@@ -109,7 +109,6 @@ int main(void)
 {
     char *ptr;
     char mtpoint[] = "user";
-    char buf[8];
     int volatile i;
     unsigned int volatile btime, etime;
 
@@ -155,9 +154,9 @@ int main(void)
             {
                 while (*ptr == ' ') ptr++;
                 btime = get_ticks();
-                cmd_yaffs_write_file(ptr, 0x55, 10*1024*1024);    /* write 0x55 into file 10 times */
+                cmd_yaffs_write_file(ptr, 0x55, 1*1024);    /* write 0x55 into file 10 times */
                 etime = get_ticks() - btime;
-                printf("write %d MB/sec\n", 10*1024*1024*100/etime);
+                printf("write %d MB/sec\n", 1*1024*100/etime);
             }
             break;
 
@@ -170,7 +169,7 @@ int main(void)
                 btime = get_ticks();
                 cmd_yaffs_read_file(ptr);
                 etime = get_ticks() - btime;
-                printf("read %d MB/sec\n", 10*1024*1024*100/etime);
+                printf("read %d MB/sec\n", 1*1024*100/etime);
                 printf("\ndone.\n");
             }
             else if (*ptr == 'm')    /* rm */
@@ -178,9 +177,8 @@ int main(void)
                 ptr++;
                 if (*ptr == 'd')
                 {
-                    i = 0;
                     while(*ptr != ' ')
-                        buf[i++] = *ptr++;
+                        i = *ptr++;
                     ptr++;
                     printf("Remove dir %s ...\n\n", ptr);
                     cmd_yaffs_rmdir(ptr);
@@ -195,13 +193,17 @@ int main(void)
             break;
 
         case 'm' :  /* mkdir */
-            i = 0;
-            while(*ptr != ' ')
-                buf[i++] = *ptr++;
-            ptr++;
-
-            if (!strcmp(buf, "kdir"))
-                cmd_yaffs_mkdir(ptr);
+            if (*ptr == 'k')
+            {
+                ptr++;
+                if (*ptr == 'd')
+                {
+                    while(*ptr != ' ')
+                        i = *ptr++;
+                    ptr++;
+                    cmd_yaffs_mkdir(ptr);
+                }
+            }
             break;
 
         case '?':       /* Show usage */

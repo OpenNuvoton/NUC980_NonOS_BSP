@@ -365,7 +365,7 @@
             <v6LangP>0</v6LangP>
             <VariousControls>
               <MiscControls>--diag_suppress=68,223,188,1293,61</MiscControls>
-              <Define>CONFIG_YAFFS_DIRECT, CONFIG_YAFFS_SHORT_NAMES_IN_RAM, CONFIG_YAFFS_YAFFS2, NO_Y_INLINE, CONFIG_YAFFS_PROVIDE_DEFS, CONFIG_YAFFSFS_PROVIDE_VALUES</Define>
+              <Define>CONFIG_YAFFS_DIRECT, CONFIG_YAFFS_SHORT_NAMES_IN_RAM, CONFIG_YAFFS_YAFFS2, NO_Y_INLINE, CONFIG_YAFFS_PROVIDE_DEFS, CONFIG_YAFFSFS_PROVIDE_VALUES, __UBOOT__, CONFIG_MTD_PARTITIONS</Define>
               <Undefine></Undefine>
               <IncludePath>..\..\Driver\Include;..\..\ThirdParty\yaffs2\include;..\..\ThirdParty\yaffs2;..\..\ThirdParty\yaffs2\include\asm;..\..\ThirdParty\yaffs2\include\linux</IncludePath>
             </VariousControls>
@@ -461,6 +461,46 @@
           <GroupName>YAFFS2</GroupName>
           <Files>
             <File>
+              <FileName>fmi_nand.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\ThirdParty\yaffs2\platform\fmi_nand.c</FilePath>
+            </File>
+            <File>
+              <FileName>mtdcore.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\ThirdParty\yaffs2\mtdcore.c</FilePath>
+            </File>
+            <File>
+              <FileName>mtdpart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\ThirdParty\yaffs2\mtdpart.c</FilePath>
+            </File>
+            <File>
+              <FileName>nand.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\ThirdParty\yaffs2\nand.c</FilePath>
+            </File>
+            <File>
+              <FileName>nand_base.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\ThirdParty\yaffs2\nand_base.c</FilePath>
+            </File>
+            <File>
+              <FileName>nand_bbt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\ThirdParty\yaffs2\nand_bbt.c</FilePath>
+            </File>
+            <File>
+              <FileName>nand_ids.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\ThirdParty\yaffs2\nand_ids.c</FilePath>
+            </File>
+            <File>
+              <FileName>nand_util.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\ThirdParty\yaffs2\nand_util.c</FilePath>
+            </File>
+            <File>
               <FileName>yaffs_allocator.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\ThirdParty\yaffs2\yaffs_allocator.c</FilePath>
@@ -479,6 +519,11 @@
               <FileName>yaffs_checkptrw.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\ThirdParty\yaffs2\yaffs_checkptrw.c</FilePath>
+            </File>
+            <File>
+              <FileName>yaffs_ecc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\ThirdParty\yaffs2\yaffs_ecc.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_error.c</FileName>
@@ -556,44 +601,9 @@
               <FilePath>..\..\ThirdParty\yaffs2\yaffsfs.c</FilePath>
             </File>
             <File>
-              <FileName>yaffs_ecc.c</FileName>
+              <FileName>yaffs_hweight.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_ecc.c</FilePath>
-            </File>
-            <File>
-              <FileName>nand.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\nand.c</FilePath>
-            </File>
-            <File>
-              <FileName>nand_base.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\nand_base.c</FilePath>
-            </File>
-            <File>
-              <FileName>nand_bbt.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\nand_bbt.c</FilePath>
-            </File>
-            <File>
-              <FileName>nand_ids.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\nand_ids.c</FilePath>
-            </File>
-            <File>
-              <FileName>nand_util.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\nand_util.c</FilePath>
-            </File>
-            <File>
-              <FileName>mtdcore.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\mtdcore.c</FilePath>
-            </File>
-            <File>
-              <FileName>mtdpart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\mtdpart.c</FilePath>
+              <FilePath>..\..\ThirdParty\yaffs2\yaffs_hweight.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_malloc.c</FileName>
@@ -601,9 +611,14 @@
               <FilePath>..\..\ThirdParty\yaffs2\yaffs_malloc.c</FilePath>
             </File>
             <File>
-              <FileName>fmi_nand.c</FileName>
+              <FileName>linux_string.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\platform\fmi_nand.c</FilePath>
+              <FilePath>..\..\ThirdParty\yaffs2\linux_string.c</FilePath>
+            </File>
+            <File>
+              <FileName>ctype.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\ThirdParty\yaffs2\ctype.c</FilePath>
             </File>
           </Files>
         </Group>
