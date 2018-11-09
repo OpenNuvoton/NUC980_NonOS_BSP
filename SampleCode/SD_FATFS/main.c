@@ -262,7 +262,7 @@ void get_line (char *buff, int len)
 
 }
 
-
+unsigned int volatile gCardInit = 0;
 void SDH_IRQHandler(void)
 {
     unsigned int volatile isr;
@@ -286,6 +286,7 @@ void SDH_IRQHandler(void)
 
     if (isr & SDH_INTSTS_CDIF_Msk)   // card detect
     {
+
         //----- SD interrupt status
         // it is work to delay 50 times for SDH_CLK = 200KHz
         {
@@ -297,16 +298,14 @@ void SDH_IRQHandler(void)
         if (isr & SDH_INTSTS_CDSTS_Msk)
         {
             printf("\n***** card remove !\n");
-            SD1.IsCardInsert = FALSE;   // SDISR_CD_Card = 1 means card remove for GPIO mode
-            memset(&SD1, 0, sizeof(SDH_INFO_T));
+            gCardInit = 0;
+            SDH_Close_Disk(SDH1);
         }
         else
         {
             printf("***** card insert !\n");
-            SDH_Open(SDH1, CardDetect_From_GPIO);
-            SDH_Probe(SDH1);
+            gCardInit = 1;
         }
-
         SDH1->INTSTS = SDH_INTSTS_CDIF_Msk;
     }
 
@@ -430,6 +429,11 @@ int32_t main(void)
 
     for (;;)
     {
+        if (gCardInit) {
+            gCardInit = 0;
+            SDH_Open_Disk(SDH1, CardDetect_From_GPIO);
+        }
+
         if(!(SDH_CardDetection(SDH1)))
             continue;
 

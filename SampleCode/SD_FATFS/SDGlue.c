@@ -49,12 +49,14 @@ void SDH_Close_Disk(SDH_T *sdh)
 {
     if (sdh == SDH0)
     {
+        _Path[0]='0';
         memset(&SD0, 0, sizeof(SDH_INFO_T));
         f_mount(NULL, _Path, 1);
         memset(&_FatfsVolSd0, 0, sizeof(FATFS));
     }
     else
     {
+        _Path[0]='1';
         memset(&SD1, 0, sizeof(SDH_INFO_T));
         f_mount(NULL, _Path, 1);
         memset(&_FatfsVolSd1, 0, sizeof(FATFS));
