@@ -13,6 +13,7 @@
 #include "nuc980.h"
 #include "sys.h"
 #include "i2c_gpio.h"
+#include "gpio.h"
 
 struct NT_RegValue
 {
@@ -83,29 +84,29 @@ static void Delay(uint32_t nCount)
         for(i=0; i<200; i++);
 }
 
-static void SnrReset(void)
+static void nt99050_SnrReset(void)
 {
-    /* GPIOI7 reset:    H->L->H     */
-    outpw(REG_SYS_GPI_MFPL,(inpw(REG_SYS_GPI_MFPL) & ~0xF0000000));
-    outpw((GPIO_BA+0x200),(inpw(GPIO_BA+0x200) | 0x0080)); /* GPIOI7 Output mode */
-    outpw((GPIO_BA+0x204),(inpw(GPIO_BA+0x204) | 0x0080)); /* GPIOI7 Output to high */
+    /* PE10 reset:	H->L->H 	*/
+    outpw(REG_SYS_GPE_MFPH,(inpw(REG_SYS_GPE_MFPH) & ~0x00000F00));
+    GPIO_SetMode(PE,1<<10,GPIO_MODE_OUTPUT);
+    PE10=1;
     Delay(100);
-    outpw((GPIO_BA+0x204),(inpw(GPIO_BA+0x204) & ~0x0080)); /* GPIOI7 Output to low */
+    PE10=0;
     Delay(100);
-    outpw((GPIO_BA+0x204),(inpw(GPIO_BA+0x204) | 0x0080)); /* GPIOI7 Output to high */
+    PE10=1;
 }
 
-static void SnrPowerDown(BOOL bIsEnable)
+static void nt99050_SnrPowerDown(BOOL bIsEnable)
 {
-    /* GPI0 power down, HIGH for power down */
-    outpw( REG_SYS_GPI_MFPL,(inpw(REG_SYS_GPI_MFPL) & ~0x0000000F));
-    outpw((GPIO_BA+0x200),(inpw(GPIO_BA+0x200) | 0x0001)); /* GPIOI0 Output mode */
-    outpw((GPIO_BA+0x204),(inpw(GPIO_BA+0x204) &~ 0x0001)); /* GPIOI0 Output to low */
-
+    /* PC0 power down, HIGH for power down */
+    outpw( REG_SYS_GPC_MFPL,(inpw(REG_SYS_GPC_MFPL) & ~0x0000000F));
+    GPIO_SetMode(PC,1<<0,GPIO_MODE_OUTPUT);
+    PC0=0;
+    Delay(100);
     if(bIsEnable)
-        outpw((GPIO_BA+0x204),(inpw(GPIO_BA+0x204) | 0x0001)); /* GPIOI0 Output to high */
+        PC0=1;
     else
-        outpw((GPIO_BA+0x204),(inpw(GPIO_BA+0x204) &~ 0x0001)); /* GPIOI0 Output to low */
+        PC0=0;
 }
 
 int InitNT99050_VGA_YUV422(void)
@@ -113,14 +114,11 @@ int InitNT99050_VGA_YUV422(void)
     uint32_t i;
     uint8_t u8DeviceID=0x42;
     uint8_t u8ID[2]= {0};
-
-    /* Enable GPIO Clock */
-    outpw(REG_CLK_PCLKEN0,inpw(REG_CLK_PCLKEN0)|(1<<3));
-    SnrReset();
-    SnrPowerDown(FALSE);
-
+    outpw(REG_CLK_HCLKEN,inpw(REG_CLK_HCLKEN)|(1<<11)); /* Enable GPIO Clock */
+    nt99050_SnrReset();
+    nt99050_SnrPowerDown(FALSE);
     /* switch I2C pin function, to do... */
-    SWI2C_Open(eDRVGPIO_GPIOD,eDRVGPIO_PIN10,eDRVGPIO_GPIOD,eDRVGPIO_PIN11,Delay);
+    SWI2C_Open(eDRVGPIO_GPIOB,eDRVGPIO_PIN4,eDRVGPIO_GPIOB,eDRVGPIO_PIN6,Delay);
     printf("NT_RegNum=%3d\n",sizeof(g_sNT99050_VGA_RegValue)/sizeof(struct NT_RegValue));
     for(i=0; i<sizeof(g_sNT99050_VGA_RegValue)/sizeof(struct NT_RegValue); i++)
     {

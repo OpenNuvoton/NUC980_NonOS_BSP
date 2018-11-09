@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "nuc980.h"
 #include "i2c_gpio.h"
+#include "gpio.h"
 
 struct NT_RegValue
 {
@@ -81,19 +82,40 @@ static void Delay(uint32_t nCount)
         for(i=0; i<100; i++);
 }
 
+static void nt99141_SnrReset(void)
+{
+    /* PE10 reset:	H->L->H 	*/
+    outpw(REG_SYS_GPE_MFPH,(inpw(REG_SYS_GPE_MFPH) & ~0x00000F00));
+    GPIO_SetMode(PE,1<<10,GPIO_MODE_OUTPUT);
+    PE10=1;
+    Delay(100);
+    PE10=0;
+    Delay(100);
+    PE10=1;
+}
+
+static void nt99141_SnrPowerDown(BOOL bIsEnable)
+{
+    /* PC0 power down, HIGH for power down */
+    outpw( REG_SYS_GPC_MFPL,(inpw(REG_SYS_GPC_MFPL) & ~0x0000000F));
+    GPIO_SetMode(PC,1<<0,GPIO_MODE_OUTPUT);
+    PC0=0;
+    if(bIsEnable)
+        PC0=1;
+    else
+        PC0=0;
+}
+
 int InitNT99141_VGA_YUV422(void)
 {
     uint32_t i;
     uint8_t u8DeviceID=0x54;
     uint8_t u8ID[2]= {0};
-//     SYS->GPB_MFPL &= ~SYS_GPB_MFPL_PD10MFP_Msk;        /* PB6 for GPIO to act as SCL */
-//     SYS->GPB_MFPL &= ~SYS_GPB_MFPL_PB7MFP_Msk;        /* PB7 for GPIO to act as SDA */
-
-//     GPIO_SetMode(PE,1<<7,GPIO_MODE_OUTPUT);                 /* Set reset pin to high */
-//     PE7=1;
-
+    outpw(REG_CLK_HCLKEN,inpw(REG_CLK_HCLKEN)|(1<<11)); /* Enable GPIO Clock */
+    nt99141_SnrReset();
+    nt99141_SnrPowerDown(FALSE);
     /* switch I2C pin function, to do... */
-    SWI2C_Open(eDRVGPIO_GPIOD,eDRVGPIO_PIN10,eDRVGPIO_GPIOD,eDRVGPIO_PIN11,Delay);
+    SWI2C_Open(eDRVGPIO_GPIOB,eDRVGPIO_PIN4,eDRVGPIO_GPIOB,eDRVGPIO_PIN6,Delay);
     printf("NT_RegNum=%3d\n",sizeof(g_sNT99141_VGA_RegValue)/sizeof(struct NT_RegValue));
     for(i=0; i<sizeof(g_sNT99141_VGA_RegValue)/sizeof(struct NT_RegValue); i++)
     {

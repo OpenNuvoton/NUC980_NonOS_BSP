@@ -283,116 +283,11 @@ uint32_t SDH_SDCmdAndRspDataIn(SDH_T *sdh, uint32_t ucCmd, uint32_t uArg)
 
 void SDH_Set_clock(SDH_T *sdh, uint32_t sd_clock_khz)
 {
-#if 0  //TODO
-    uint32_t rate, div1;
-    static uint32_t u32SD_ClkSrc = 0ul, u32SD_PwrCtl = 0ul;
-
-    /* initial state, clock source use HIRC */
-    if (sd_clock_khz <= 400ul)
-    {
-        u32SD_PwrCtl = CLK->PWRCTL;
-        if ((u32SD_PwrCtl & CLK_PWRCTL_HIRCEN_Msk) != 0x4ul)
-        {
-            CLK->PWRCTL |= CLK_PWRCTL_HIRCEN_Msk;
-        }
-
-        if (sdh == SDH0)
-        {
-            u32SD_ClkSrc = (CLK->CLKSEL0 & CLK_CLKSEL0_SDH0SEL_Msk);
-            CLK->CLKSEL0 = (CLK->CLKSEL0 & ~CLK_CLKSEL0_SDH0SEL_Msk) | CLK_CLKSEL0_SDH0SEL_HIRC;
-        }
-        else
-        {
-            u32SD_ClkSrc = (CLK->CLKSEL0 & CLK_CLKSEL0_SDH1SEL_Msk);
-            CLK->CLKSEL0 = (CLK->CLKSEL0 & ~CLK_CLKSEL0_SDH1SEL_Msk) | CLK_CLKSEL0_SDH1SEL_HIRC;
-        }
-        _SDH_ReferenceClock = (__HIRC / 1000ul);
-    }
-    /* transfer state, clock source use sys_init() */
-    else
-    {
-        CLK->PWRCTL = u32SD_PwrCtl;
-        if (sdh == SDH0)
-        {
-            CLK->CLKSEL0 = (CLK->CLKSEL0 & ~CLK_CLKSEL0_SDH0SEL_Msk) | u32SD_ClkSrc;
-            if(u32SD_ClkSrc == CLK_CLKSEL0_SDH0SEL_HXT)
-            {
-                _SDH_ReferenceClock = (CLK_GetHXTFreq() / 1000ul);
-            }
-            else if(u32SD_ClkSrc == CLK_CLKSEL0_SDH0SEL_HIRC)
-            {
-                _SDH_ReferenceClock = (__HIRC / 1000ul);
-            }
-            else if(u32SD_ClkSrc == CLK_CLKSEL0_SDH0SEL_PLL)
-            {
-                _SDH_ReferenceClock = (CLK_GetPLLClockFreq() / 1000ul);
-            }
-            else if(u32SD_ClkSrc == CLK_CLKSEL0_SDH0SEL_HCLK)
-            {
-                _SDH_ReferenceClock = (CLK_GetHCLKFreq() / 1000ul);
-            }
-        }
-        else
-        {
-            CLK->CLKSEL0 = (CLK->CLKSEL0 & ~CLK_CLKSEL0_SDH1SEL_Msk) | u32SD_ClkSrc;
-            if(u32SD_ClkSrc == CLK_CLKSEL0_SDH1SEL_HXT)
-            {
-                _SDH_ReferenceClock = (CLK_GetHXTFreq() / 1000ul);
-            }
-            else if(u32SD_ClkSrc == CLK_CLKSEL0_SDH1SEL_HIRC)
-            {
-                _SDH_ReferenceClock = (__HIRC / 1000ul);
-            }
-            else if(u32SD_ClkSrc == CLK_CLKSEL0_SDH1SEL_PLL)
-            {
-                _SDH_ReferenceClock = (CLK_GetPLLClockFreq() / 1000ul);
-            }
-            else if(u32SD_ClkSrc == CLK_CLKSEL0_SDH1SEL_HCLK)
-            {
-                _SDH_ReferenceClock = (CLK_GetHCLKFreq() / 1000ul);
-            }
-        }
-
-        if(sd_clock_khz >= 50000ul)
-        {
-            sd_clock_khz = 50000ul;
-        }
-    }
-    rate = _SDH_ReferenceClock / sd_clock_khz;
-
-    /* choose slower clock if system clock cannot divisible by wanted clock */
-    if ((_SDH_ReferenceClock % sd_clock_khz) != 0ul)
-    {
-        rate++;
-    }
-
-    if(rate >= SDH_CLK_DIV0_MAX)
-    {
-        rate = SDH_CLK_DIV0_MAX;
-    }
-
-    /*--- calculate the second divider CLKDIV0[SDHOST_N]*/
-    div1 = (rate - 1ul) & 0xFFul;
-
-    /*--- setup register */
-    if (sdh == SDH0)
-    {
-        CLK->CLKDIV0 &= ~CLK_CLKDIV0_SDH0DIV_Msk;
-        CLK->CLKDIV0 |= (div1 << CLK_CLKDIV0_SDH0DIV_Pos);
-    }
-    else
-    {
-        CLK->CLKDIV3 &= ~CLK_CLKDIV3_SDH1DIV_Msk;
-        CLK->CLKDIV3 |= (div1 << CLK_CLKDIV3_SDH1DIV_Pos);
-    }
-    return;
-#else
     UINT32 div1;
     _SDH_ReferenceClock = 30000;
     div1=(_SDH_ReferenceClock/sd_clock_khz)-1;
     outpw(REG_CLK_DIVCTL9, (inpw(REG_CLK_DIVCTL9) & ~0x18) | (0x0 << 3));       // SD clock from XIN [4:3]
     outpw(REG_CLK_DIVCTL9, (inpw(REG_CLK_DIVCTL9) & ~0xff00) | ((div1) << 8));  // SD clock divided by CLKDIV3[SD_N] [15:8]
-#endif
 }
 
 uint32_t SDH_CardDetection(SDH_T *sdh)
@@ -881,6 +776,7 @@ void SDH_Get_SD_info(SDH_T *sdh)
  */
 void SDH_Open(SDH_T *sdh, uint32_t u32CardDetSrc)
 {
+    int i;
     sdh->DMACTL = SDH_DMACTL_DMARST_Msk;
     while ((sdh->DMACTL & SDH_DMACTL_DMARST_Msk) == SDH_DMACTL_DMARST_Msk)
     {
@@ -912,7 +808,8 @@ void SDH_Open(SDH_T *sdh, uint32_t u32CardDetSrc)
     {
         sdh->INTEN |= SDH_INTEN_CDSRC_Msk;
     }
-    sdh->INTSTS |= SDH_INTSTS_CDIF_Msk;
+    for(i=0;i<0x100;i++) __nop();
+    sdh->INTSTS = SDH_INTSTS_CDIF_Msk;
     sdh->INTEN |= SDH_INTEN_CDIEN_Msk;
 
     sdh->CTL |= SDH_CTL_CTLRST_Msk;
