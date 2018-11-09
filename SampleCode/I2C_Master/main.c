@@ -152,7 +152,7 @@ void I2C_MasterTx(uint32_t u32Status)
 
 void I2C0_Init(void)
 {
-    outpw(REG_CLK_PCLKEN1, inpw(REG_CLK_PCLKEN1) | (0x1 << 1)); // Enable I2C0 engine clock
+    outpw(REG_CLK_PCLKEN1, inpw(REG_CLK_PCLKEN1) | (0x1 << 0)); // Enable I2C0 engine clock
 
     /* Open I2C0 and set clock to 100k */
     I2C_Open(I2C0, 100000);

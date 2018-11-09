@@ -13,7 +13,7 @@
 uint32_t slave_buff_addr;
 uint8_t g_au8SlvData[256];
 uint8_t g_au8SlvRxData[3];
-uint8_t g_u8SlvPWRDNWK, g_u8SlvI2CWK;
+uint8_t g_u8SlvI2CWK;
 /*---------------------------------------------------------------------------------------------------------*/
 /* Global variables                                                                                        */
 /*---------------------------------------------------------------------------------------------------------*/
@@ -151,7 +151,7 @@ void I2C_SlaveTRx(uint32_t u32Status)
 
 void I2C0_Init(void)
 {
-    outpw(REG_CLK_PCLKEN1, inpw(REG_CLK_PCLKEN1) | (0x1 << 1)); // Enable I2C0 engine clock
+    outpw(REG_CLK_PCLKEN1, inpw(REG_CLK_PCLKEN1) | (0x1 << 0)); // Enable I2C0 engine clock
 
     /* Open I2C module and set bus clock */
     I2C_Open(I2C0, 100000);
@@ -254,7 +254,7 @@ int32_t main(void)
     PowerDownFunction();
 
     /* Waiting for syteem wake-up and I2C wake-up finish*/
-    while((g_u8SlvPWRDNWK & g_u8SlvI2CWK) == 0);
+    while(g_u8SlvI2CWK == 0);
 
     /* Waitinn for I2C response ACK finish */
     while(!(I2C0->WKSTS & I2C_WKSTS_WKAKDONE_Msk));

@@ -151,7 +151,7 @@ void I2C_MasterTx(uint32_t u32Status)
 
 void I2C0_Init(void)
 {
-    outpw(REG_CLK_PCLKEN1, inpw(REG_CLK_PCLKEN1) | (0x1 << 1)); // Enable I2C0 engine clock
+    outpw(REG_CLK_PCLKEN1, inpw(REG_CLK_PCLKEN1) | (0x1 << 0)); // Enable I2C0 engine clock
 
     /* Open I2C0 and set clock to 100k */
     I2C_Open(I2C0, 100000);
@@ -168,6 +168,7 @@ void I2C0_Init(void)
     I2C_SetSlaveAddr(I2C0, 2, 0x55, I2C_GCMODE_DISABLE);   /* Slave Address : 0x55 */
     I2C_SetSlaveAddr(I2C0, 3, 0x75, I2C_GCMODE_DISABLE);   /* Slave Address : 0x75 */
 
+    I2C_EnableInt(I2C0);
     sysInstallISR(IRQ_LEVEL_1, IRQ_I2C0, (PVOID)I2C0_IRQHandler);
     sysSetLocalInterrupt(ENABLE_IRQ);
     sysEnableInterrupt(IRQ_I2C0);
