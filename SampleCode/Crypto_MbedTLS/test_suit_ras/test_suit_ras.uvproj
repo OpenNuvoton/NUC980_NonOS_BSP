@@ -375,7 +375,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\..\Driver\Include;..\..\..\ThirdParty\mbedtls-2.6.0\include</IncludePath>
+              <IncludePath>..\..\..\Driver\Include;..\..\..\ThirdParty\mbedtls-2.13.0\include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -420,14 +420,14 @@
           <GroupName>src</GroupName>
           <Files>
             <File>
-              <FileName>main.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\main.c</FilePath>
-            </File>
-            <File>
               <FileName>vector_data.s</FileName>
               <FileType>2</FileType>
               <FilePath>.\vector_data.s</FilePath>
+            </File>
+            <File>
+              <FileName>main.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\main.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -475,84 +475,94 @@
           <GroupName>MbedTLS</GroupName>
           <Files>
             <File>
+              <FileName>aes.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\aes.c</FilePath>
+            </File>
+            <File>
               <FileName>aesni.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\aesni.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\aesni.c</FilePath>
             </File>
             <File>
               <FileName>asn1parse.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\asn1parse.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\asn1parse.c</FilePath>
             </File>
             <File>
               <FileName>bignum.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\bignum.c</FilePath>
-            </File>
-            <File>
-              <FileName>md.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\md.c</FilePath>
-            </File>
-            <File>
-              <FileName>md_wrap.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\md_wrap.c</FilePath>
-            </File>
-            <File>
-              <FileName>md5.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\md5.c</FilePath>
-            </File>
-            <File>
-              <FileName>oid.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\oid.c</FilePath>
-            </File>
-            <File>
-              <FileName>ripemd160.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\ripemd160.c</FilePath>
-            </File>
-            <File>
-              <FileName>rsa.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\rsa.c</FilePath>
-            </File>
-            <File>
-              <FileName>sha1.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\sha1.c</FilePath>
-            </File>
-            <File>
-              <FileName>sha256.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\sha256.c</FilePath>
-            </File>
-            <File>
-              <FileName>sha512.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\sha512.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\bignum.c</FilePath>
             </File>
             <File>
               <FileName>ctr_drbg.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\ctr_drbg.c</FilePath>
-            </File>
-            <File>
-              <FileName>aes.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\aes.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\ctr_drbg.c</FilePath>
             </File>
             <File>
               <FileName>entropy.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\entropy.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\entropy.c</FilePath>
             </File>
             <File>
               <FileName>entropy_poll.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\entropy_poll.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\entropy_poll.c</FilePath>
+            </File>
+            <File>
+              <FileName>md.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\md.c</FilePath>
+            </File>
+            <File>
+              <FileName>md_wrap.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\md_wrap.c</FilePath>
+            </File>
+            <File>
+              <FileName>md5.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\md5.c</FilePath>
+            </File>
+            <File>
+              <FileName>oid.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\oid.c</FilePath>
+            </File>
+            <File>
+              <FileName>ripemd160.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\ripemd160.c</FilePath>
+            </File>
+            <File>
+              <FileName>rsa.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\rsa.c</FilePath>
+            </File>
+            <File>
+              <FileName>rsa_internal.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\rsa_internal.c</FilePath>
+            </File>
+            <File>
+              <FileName>sha1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\sha1.c</FilePath>
+            </File>
+            <File>
+              <FileName>sha256.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\sha256.c</FilePath>
+            </File>
+            <File>
+              <FileName>sha512.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\sha512.c</FilePath>
+            </File>
+            <File>
+              <FileName>platform_util.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\platform_util.c</FilePath>
             </File>
           </Files>
         </Group>

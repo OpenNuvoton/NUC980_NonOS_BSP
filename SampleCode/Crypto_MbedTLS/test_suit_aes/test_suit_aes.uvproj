@@ -375,7 +375,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\..\Driver\Include;..\..\..\ThirdParty\mbedtls-2.6.0\include</IncludePath>
+              <IncludePath>..\..\..\Driver\Include;..\..\..\ThirdParty\mbedtls-2.13.0\include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -472,7 +472,12 @@
             <File>
               <FileName>aes.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\ThirdParty\mbedtls-2.6.0\library\aes.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\aes.c</FilePath>
+            </File>
+            <File>
+              <FileName>platform_util.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\mbedtls-2.13.0\library\platform_util.c</FilePath>
             </File>
           </Files>
         </Group>

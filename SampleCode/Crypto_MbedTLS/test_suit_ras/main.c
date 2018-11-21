@@ -34,20 +34,29 @@
 #include "etimer.h"
 
 
+/* Type for Hex parameters */
+typedef struct data_tag
+{
+    uint8_t *   x;
+    uint32_t    len;
+} data_t;
+
 /*----------------------------------------------------------------------------*/
-/* Constants */
+/* Status and error constants */
 
-#define DEPENDENCY_SUPPORTED          0
-#define DEPENDENCY_NOT_SUPPORTED      1
+#define DEPENDENCY_SUPPORTED            0   /* Dependency supported by build */
+#define KEY_VALUE_MAPPING_FOUND         0   /* Integer expression found */
+#define DISPATCH_TEST_SUCCESS           0   /* Test dispatch successful */
 
-#define KEY_VALUE_MAPPING_FOUND       0
-#define KEY_VALUE_MAPPING_NOT_FOUND   -1
-
-#define DISPATCH_TEST_SUCCESS         0
-#define DISPATCH_TEST_FN_NOT_FOUND    1
-#define DISPATCH_INVALID_TEST_DATA    2
-#define DISPATCH_UNSUPPORTED_SUITE    3
-
+#define KEY_VALUE_MAPPING_NOT_FOUND     -1  /* Integer expression not found */
+#define DEPENDENCY_NOT_SUPPORTED        -2  /* Dependency not supported */
+#define DISPATCH_TEST_FN_NOT_FOUND      -3  /* Test function not found */
+#define DISPATCH_INVALID_TEST_DATA      -4  /* Invalid test parameter type.
+                                               Only int, string, binary data
+                                               and integer expressions are
+                                               allowed */
+#define DISPATCH_UNSUPPORTED_SUITE      -5  /* Test suite not supported by the
+                                               build */
 
 /*----------------------------------------------------------------------------*/
 /* Macros */
@@ -98,9 +107,6 @@
 UINT8     *file_base_ptr;
 UINT32    g_file_idx, g_file_size;
 
-
-static char  g_line_buff[4096];
-
 static int test_errors = 0;
 
 extern UINT32  VectorBase_RSA, VectorLimit_RSA;
@@ -139,7 +145,7 @@ int  is_eof(void)
         return 0;     /* not EOF */
 }
 
-int  get_line(void)
+int  read_file_line(char *buf, int len)
 {
     int         i;
     uint8_t     ch;
@@ -150,7 +156,7 @@ int  get_line(void)
         return -1;
     }
 
-    memset(g_line_buff, 0, sizeof(g_line_buff));
+    memset(buf, 0, len);
 
     for (i = 0;;)
     {
@@ -160,7 +166,7 @@ int  get_line(void)
         if ((ch == 0x0D) || (ch == 0x0A))
             break;
 
-        g_line_buff[i++] = ch;
+        buf[i++] = ch;
     }
 
     while (1)
@@ -172,9 +178,66 @@ int  get_line(void)
             break;
     }
     g_file_idx--;
+    //printf("LINE: %s\n", buf);
     return 0;
 }
 
+/**
+ * \brief       Read a line from the passed file pointer.
+ *
+ * \param buf   Pointer to memory to hold read line.
+ * \param len   Length of the buf.
+ *
+ * \return      0 if success else -1 for EOF
+ */
+int get_line(char *buf, size_t len)
+{
+    char *ret;
+    int i = 0, str_len = 0, has_string = 0;
+
+    /* Read until we get a valid line */
+    do
+    {
+        if (read_file_line( buf, len ) != 0)
+            return( -1 );
+
+        str_len = strlen( buf );
+
+        /* Skip empty line and comment */
+        if ( str_len == 0 || buf[0] == '#' )
+            continue;
+        has_string = 0;
+        for ( i = 0; i < str_len; i++ )
+        {
+            char c = buf[i];
+            if ( c != ' ' && c != '\t' && c != '\n' &&
+                 c != '\v' && c != '\f' && c != '\r' )
+            {
+                has_string = 1;
+                break;
+            }
+        }
+    } while( !has_string );
+
+    /* Strip new line and carriage return */
+    ret = buf + strlen( buf );
+    if( ret-- > buf && *ret == '\n' )
+        *ret = '\0';
+    if( ret-- > buf && *ret == '\r' )
+        *ret = '\0';
+
+    return( 0 );
+}
+
+
+static void test_fail( const char *test, int line_no, const char* filename )
+{
+    test_errors++;
+    if( test_errors == 1 )
+        printf("FAILED\n" );
+    printf("  %s\n  at line %d, %s\n", test, line_no, filename );
+    while (1);
+}
 
 static int unhexify( unsigned char *obuf, const char *ibuf )
 {
@@ -209,40 +272,6 @@ static int unhexify( unsigned char *obuf, const char *ibuf )
 
     return len;
 }
-
-static void hexify( unsigned char *obuf, const unsigned char *ibuf, int len )
-{
-    unsigned char l, h;
-
-    while( len != 0 )
-    {
-        h = *ibuf / 16;
-        l = *ibuf % 16;
-
-        if( h < 10 )
-            *obuf++ = '0' + h;
-        else
-            *obuf++ = 'a' + h - 10;
-
-        if( l < 10 )
-            *obuf++ = '0' + l;
-        else
-            *obuf++ = 'a' + l - 10;
-
-        ++ibuf;
-        len--;
-    }
-}
-
-void print_hex(uint8_t *hex, int len)
-{
-    int  i;
-
-    for (i = 0; i < len; i++)
-        printf("%x%x ", (hex[i]>>4) & 0xf, hex[i]&0xf);
-    printf("\n");
-}
-
 
 /**
  * This function just returns data from rand().
@@ -329,10 +358,10 @@ static int rnd_pseudo_rand( void *rng_state, unsigned char *output, size_t len )
         for( i = 0; i < 32; i++ )
         {
             info->v0 += ( ( ( info->v1 << 4 ) ^ ( info->v1 >> 5 ) )
-                          + info->v1 ) ^ ( sum + k[sum & 3] );
+                            + info->v1 ) ^ ( sum + k[sum & 3] );
             sum += delta;
             info->v1 += ( ( ( info->v0 << 4 ) ^ ( info->v0 >> 5 ) )
-                          + info->v0 ) ^ ( sum + k[( sum>>11 ) & 3] );
+                            + info->v0 ) ^ ( sum + k[( sum>>11 ) & 3] );
         }
 
         PUT_UINT32_BE( info->v0, result, 0 );
@@ -344,24 +373,37 @@ static int rnd_pseudo_rand( void *rng_state, unsigned char *output, size_t len )
     return( 0 );
 }
 
-static void test_fail( const char *test, int line_no, const char* filename )
+int hexcmp( uint8_t * a, uint8_t * b, uint32_t a_len, uint32_t b_len )
 {
-    test_errors++;
-    if( test_errors == 1 )
-        printf("FAILED\n" );
-    printf("  %s\n  at line %d, %s\n", test, line_no, filename );
-    while (1);
+    int ret = 0;
+    uint32_t i = 0;
+
+    if ( a_len != b_len )
+        return( -1 );
+
+    for( i = 0; i < a_len; i++ )
+    {
+        if ( a[i] != b[i] )
+        {
+            ret = -1;
+            break;
+        }
+    }
+    return ret;
 }
 
 
 /*----------------------------------------------------------------------------*/
 /* Test Suite Code */
 
+
+#define TEST_SUITE_ACTIVE
+
 #if defined(MBEDTLS_RSA_C)
 #if defined(MBEDTLS_BIGNUM_C)
 #if defined(MBEDTLS_GENPRIME)
-
 #include "mbedtls/rsa.h"
+#include "mbedtls/rsa_internal.h"
 #include "mbedtls/md2.h"
 #include "mbedtls/md4.h"
 #include "mbedtls/md5.h"
@@ -371,559 +413,470 @@ static void test_fail( const char *test, int line_no, const char* filename )
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
 
-#endif /* defined(MBEDTLS_RSA_C) */
-#endif /* defined(MBEDTLS_BIGNUM_C) */
-#endif /* defined(MBEDTLS_GENPRIME) */
-
-
-#if defined(MBEDTLS_RSA_C)
-#if defined(MBEDTLS_BIGNUM_C)
-#if defined(MBEDTLS_GENPRIME)
-
-#define TEST_SUITE_ACTIVE
-
-int verify_string( char **str )
+void test_mbedtls_rsa_pkcs1_sign( data_t * message_str, int padding_mode,
+                             int digest, int mod, int radix_P, char * input_P,
+                             int radix_Q, char * input_Q, int radix_N,
+                             char * input_N, int radix_E, char * input_E,
+                             data_t * result_hex_str, int result )
 {
-    if( (*str)[0] != '"' ||
-            (*str)[strlen( *str ) - 1] != '"' )
-    {
-        printf("Expected string (with \"\") for parameter and got: %s\n", *str );
-        return( -1 );
-    }
-
-    (*str)++;
-    (*str)[strlen( *str ) - 1] = '\0';
-
-    return( 0 );
-}
-
-int verify_int( char *str, int *value )
-{
-    size_t i;
-    int minus = 0;
-    int digits = 1;
-    int hex = 0;
-
-    for( i = 0; i < strlen( str ); i++ )
-    {
-        if( i == 0 && str[i] == '-' )
-        {
-            minus = 1;
-            continue;
-        }
-
-        if( ( ( minus && i == 2 ) || ( !minus && i == 1 ) ) &&
-                str[i - 1] == '0' && str[i] == 'x' )
-        {
-            hex = 1;
-            continue;
-        }
-
-        if( ! ( ( str[i] >= '0' && str[i] <= '9' ) ||
-                ( hex && ( ( str[i] >= 'a' && str[i] <= 'f' ) ||
-                           ( str[i] >= 'A' && str[i] <= 'F' ) ) ) ) )
-        {
-            digits = 0;
-            break;
-        }
-    }
-
-    if( digits )
-    {
-        if( hex )
-            *value = strtol( str, NULL, 16 );
-        else
-            *value = strtol( str, NULL, 10 );
-
-        return( 0 );
-    }
-
-    if( strcmp( str, "MBEDTLS_MD_SHA256" ) == 0 )
-    {
-        *value = ( MBEDTLS_MD_SHA256 );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_ERR_RSA_PUBLIC_FAILED + MBEDTLS_ERR_MPI_BAD_INPUT_DATA" ) == 0 )
-    {
-        *value = ( MBEDTLS_ERR_RSA_PUBLIC_FAILED + MBEDTLS_ERR_MPI_BAD_INPUT_DATA );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_MD_MD4" ) == 0 )
-    {
-        *value = ( MBEDTLS_MD_MD4 );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_ERR_RSA_BAD_INPUT_DATA" ) == 0 )
-    {
-        *value = ( MBEDTLS_ERR_RSA_BAD_INPUT_DATA );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_ERR_RSA_OUTPUT_TOO_LARGE" ) == 0 )
-    {
-        *value = ( MBEDTLS_ERR_RSA_OUTPUT_TOO_LARGE );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_ERR_RSA_PRIVATE_FAILED + MBEDTLS_ERR_MPI_BAD_INPUT_DATA" ) == 0 )
-    {
-        *value = ( MBEDTLS_ERR_RSA_PRIVATE_FAILED + MBEDTLS_ERR_MPI_BAD_INPUT_DATA );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_MD_SHA224" ) == 0 )
-    {
-        *value = ( MBEDTLS_MD_SHA224 );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_MD_SHA512" ) == 0 )
-    {
-        *value = ( MBEDTLS_MD_SHA512 );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_MD_MD5" ) == 0 )
-    {
-        *value = ( MBEDTLS_MD_MD5 );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_ERR_RSA_INVALID_PADDING" ) == 0 )
-    {
-        *value = ( MBEDTLS_ERR_RSA_INVALID_PADDING );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_ERR_RSA_KEY_CHECK_FAILED" ) == 0 )
-    {
-        *value = ( MBEDTLS_ERR_RSA_KEY_CHECK_FAILED );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_RSA_PKCS_V15" ) == 0 )
-    {
-        *value = ( MBEDTLS_RSA_PKCS_V15 );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_ERR_RSA_RNG_FAILED" ) == 0 )
-    {
-        *value = ( MBEDTLS_ERR_RSA_RNG_FAILED );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_MD_SHA384" ) == 0 )
-    {
-        *value = ( MBEDTLS_MD_SHA384 );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_ERR_RSA_VERIFY_FAILED" ) == 0 )
-    {
-        *value = ( MBEDTLS_ERR_RSA_VERIFY_FAILED );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_MD_MD2" ) == 0 )
-    {
-        *value = ( MBEDTLS_MD_MD2 );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-    if( strcmp( str, "MBEDTLS_MD_SHA1" ) == 0 )
-    {
-        *value = ( MBEDTLS_MD_SHA1 );
-        return( KEY_VALUE_MAPPING_FOUND );
-    }
-
-    printf("Expected integer for parameter and got: %s\n", str );
-    return( KEY_VALUE_MAPPING_NOT_FOUND );
-}
-
-
-/*----------------------------------------------------------------------------*/
-/* Test Case code */
-
-void test_suite_mbedtls_rsa_pkcs1_sign( char *message_hex_string, int padding_mode, int digest,
-                                        int mod, int radix_P, char *input_P, int radix_Q,
-                                        char *input_Q, int radix_N, char *input_N, int radix_E,
-                                        char *input_E, char *result_hex_str, int result )
-{
-    unsigned char message_str[1000];
     unsigned char hash_result[1000];
     unsigned char output[1000];
-    unsigned char output_str[1000];
     mbedtls_rsa_context ctx;
-    mbedtls_mpi P1, Q1, H, G;
-    int msg_len;
+    mbedtls_mpi N, P, Q, E;
     rnd_pseudo_info rnd_info;
 
-    mbedtls_mpi_init( &P1 );
-    mbedtls_mpi_init( &Q1 );
-    mbedtls_mpi_init( &H );
-    mbedtls_mpi_init( &G );
+    RSA_claim_bit_length(mod);
+
+    mbedtls_mpi_init( &N ); mbedtls_mpi_init( &P );
+    mbedtls_mpi_init( &Q ); mbedtls_mpi_init( &E );
     mbedtls_rsa_init( &ctx, padding_mode, 0 );
 
-    memset( message_str, 0x00, 1000 );
     memset( hash_result, 0x00, 1000 );
     memset( output, 0x00, 1000 );
-    memset( output_str, 0x00, 1000 );
     memset( &rnd_info, 0, sizeof( rnd_pseudo_info ) );
 
-    RSA_claim_bit_length(mod);
-    ctx.len = mod / 8;
+    TEST_ASSERT( mbedtls_mpi_read_string( &P, radix_P, input_P ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &Q, radix_Q, input_Q ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &N, radix_N, input_N ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
 
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.P, radix_P, input_P ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.Q, radix_Q, input_Q ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.N, radix_N, input_N ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.E, radix_E, input_E ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_sub_int( &P1, &ctx.P, 1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_sub_int( &Q1, &ctx.Q, 1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_mul_mpi( &H, &P1, &Q1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_gcd( &G, &ctx.E, &H  ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_inv_mod( &ctx.D, &ctx.E, &H  ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_mod_mpi( &ctx.DP, &ctx.D, &P1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_mod_mpi( &ctx.DQ, &ctx.D, &Q1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_inv_mod( &ctx.QP, &ctx.Q, &ctx.P ) == 0 );
-
+    TEST_ASSERT( mbedtls_rsa_import( &ctx, &N, &P, &Q, NULL, &E ) == 0 );
+    TEST_ASSERT( mbedtls_rsa_get_len( &ctx ) == (size_t) ( mod / 8 ) );
+    TEST_ASSERT( mbedtls_rsa_complete( &ctx ) == 0 );
     TEST_ASSERT( mbedtls_rsa_check_privkey( &ctx ) == 0 );
 
-    msg_len = unhexify( message_str, message_hex_string );
 
-    if( mbedtls_md_info_from_type( (mbedtls_md_type_t)digest ) != NULL )
-        TEST_ASSERT( mbedtls_md( mbedtls_md_info_from_type( (mbedtls_md_type_t)digest ), message_str, msg_len, hash_result ) == 0 );
-    TEST_ASSERT( mbedtls_rsa_pkcs1_sign( &ctx, &rnd_pseudo_rand, &rnd_info, MBEDTLS_RSA_PRIVATE, (mbedtls_md_type_t)digest, 0, hash_result, output ) == result );
+    if( mbedtls_md_info_from_type((mbedtls_md_type_t) digest ) != NULL )
+        TEST_ASSERT( mbedtls_md( mbedtls_md_info_from_type((mbedtls_md_type_t) digest ), message_str->x, message_str->len, hash_result ) == 0 );
+
+    TEST_ASSERT( mbedtls_rsa_pkcs1_sign( &ctx, &rnd_pseudo_rand, &rnd_info,
+                                         MBEDTLS_RSA_PRIVATE, (mbedtls_md_type_t)digest, 0,
+                                         hash_result, output ) == result );
     if( result == 0 )
     {
-        hexify( output_str, output, ctx.len );
 
-        TEST_ASSERT( strcasecmp( (char *) output_str, result_hex_str ) == 0 );
+        TEST_ASSERT( hexcmp( output, result_hex_str->x, ctx.len, result_hex_str->len ) == 0 );
     }
 
 exit:
-    mbedtls_mpi_free( &P1 );
-    mbedtls_mpi_free( &Q1 );
-    mbedtls_mpi_free( &H );
-    mbedtls_mpi_free( &G );
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &P );
+    mbedtls_mpi_free( &Q ); mbedtls_mpi_free( &E );
     mbedtls_rsa_free( &ctx );
 }
 
-void test_suite_mbedtls_rsa_pkcs1_verify( char *message_hex_string, int padding_mode, int digest,
-        int mod, int radix_N, char *input_N, int radix_E,
-        char *input_E, char *result_hex_str, int result )
+void test_mbedtls_rsa_pkcs1_sign_wrapper( void ** params )
 {
-    unsigned char message_str[1000];
-    unsigned char hash_result[1000];
-    unsigned char result_str[1000];
-    mbedtls_rsa_context ctx;
-    int msg_len;
+    data_t data0;
+    data_t data13;
+    
+    data0.x = (uint8_t *) params[0];
+    data0.len = *( (uint32_t *) params[1] );
+    data13.x = (uint8_t *) params[13];
+    data13.len = *( (uint32_t *) params[14]);
+    
+    test_mbedtls_rsa_pkcs1_sign( &data0, *( (int *) params[2] ), 
+                 *( (int *) params[3] ), *( (int *) params[4] ), *( (int *) params[5] ), (char *) params[6], 
+                 *( (int *) params[7] ), (char *) params[8], *( (int *) params[9] ), 
+                 (char *) params[10],  *( (int *) params[11] ), (char *) params[12], 
+                 &data13, *( (int *) params[15] ) );
+}
 
-    mbedtls_rsa_init( &ctx, padding_mode, 0 );
-    memset( message_str, 0x00, 1000 );
-    memset( hash_result, 0x00, 1000 );
-    memset( result_str, 0x00, 1000 );
+
+//void test_mbedtls_rsa_pkcs1_sign( data_t * message_str, int padding_mode,
+//                             int digest, int mod, int radix_P, char * input_P,
+//                             int radix_Q, char * input_Q, int radix_N,
+//                             char * input_N, int radix_E, char * input_E,
+//                             data_t * result_hex_str, int result )
+
+
+void test_mbedtls_rsa_pkcs1_verify( data_t * message_str, int padding_mode,
+                               int digest, int mod, int radix_N,
+                               char * input_N, int radix_E, char * input_E,
+                               data_t * result_str, int result )
+{
+    unsigned char hash_result[1000];
+    mbedtls_rsa_context ctx;
+
+    mbedtls_mpi N, E;
 
     RSA_claim_bit_length(mod);
-    ctx.len = mod / 8;
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.N, radix_N, input_N ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.E, radix_E, input_E ) == 0 );
 
+    mbedtls_mpi_init( &N ); mbedtls_mpi_init( &E );
+    mbedtls_rsa_init( &ctx, padding_mode, 0 );
+    memset( hash_result, 0x00, 1000 );
+
+    TEST_ASSERT( mbedtls_mpi_read_string( &N, radix_N, input_N ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
+    TEST_ASSERT( mbedtls_rsa_import( &ctx, &N, NULL, NULL, NULL, &E ) == 0 );
+    TEST_ASSERT( mbedtls_rsa_get_len( &ctx ) == (size_t) ( mod / 8 ) );
     TEST_ASSERT( mbedtls_rsa_check_pubkey( &ctx ) == 0 );
 
-    msg_len = unhexify( message_str, message_hex_string );
-    unhexify( result_str, result_hex_str );
 
-    if( mbedtls_md_info_from_type( (mbedtls_md_type_t)digest ) != NULL )
-        TEST_ASSERT( mbedtls_md( mbedtls_md_info_from_type( (mbedtls_md_type_t)digest ), message_str, msg_len, hash_result ) == 0 );
+    if( mbedtls_md_info_from_type((mbedtls_md_type_t) digest ) != NULL )
+        TEST_ASSERT( mbedtls_md( mbedtls_md_info_from_type((mbedtls_md_type_t) digest ), message_str->x, message_str->len, hash_result ) == 0 );
 
-    TEST_ASSERT( mbedtls_rsa_pkcs1_verify( &ctx, NULL, NULL, MBEDTLS_RSA_PUBLIC, (mbedtls_md_type_t)digest, 0, hash_result, result_str ) == result );
+    TEST_ASSERT( mbedtls_rsa_pkcs1_verify( &ctx, NULL, NULL, MBEDTLS_RSA_PUBLIC, (mbedtls_md_type_t)digest, 0, hash_result, result_str->x ) == result );
 
 exit:
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &E );
     mbedtls_rsa_free( &ctx );
 }
 
-void test_suite_rsa_pkcs1_sign_raw( char *message_hex_string, char *hash_result_string,
-                                    int padding_mode, int mod, int radix_P, char *input_P,
-                                    int radix_Q, char *input_Q, int radix_N,
-                                    char *input_N, int radix_E, char *input_E,
-                                    char *result_hex_str )
+void test_mbedtls_rsa_pkcs1_verify_wrapper( void ** params )
 {
-    unsigned char message_str[1000];
-    unsigned char hash_result[1000];
+    data_t data0;
+    data_t data9;
+    
+    data0.x = (uint8_t *) params[0];
+    data0.len =  *( (uint32_t *) params[1] );
+    data9.x = (uint8_t *) params[9];
+    data9.len = *( (uint32_t *) params[10] );
+
+    test_mbedtls_rsa_pkcs1_verify( &data0, *( (int *) params[2] ), *( (int *) params[3] ), *( (int *) params[4] ), *( (int *) params[5] ), (char *) params[6], *( (int *) params[7] ), (char *) params[8], &data9, *( (int *) params[11] ) );
+}
+
+void test_rsa_pkcs1_sign_raw( data_t * hash_result,
+                         int padding_mode, int mod, int radix_P,
+                         char * input_P, int radix_Q, char * input_Q,
+                         int radix_N, char * input_N, int radix_E,
+                         char * input_E, data_t * result_hex_str )
+{
     unsigned char output[1000];
-    unsigned char output_str[1000];
     mbedtls_rsa_context ctx;
-    mbedtls_mpi P1, Q1, H, G;
-    int hash_len;
+    mbedtls_mpi N, P, Q, E;
     rnd_pseudo_info rnd_info;
 
-    mbedtls_mpi_init( &P1 );
-    mbedtls_mpi_init( &Q1 );
-    mbedtls_mpi_init( &H );
-    mbedtls_mpi_init( &G );
     mbedtls_rsa_init( &ctx, padding_mode, 0 );
+    mbedtls_mpi_init( &N ); mbedtls_mpi_init( &P );
+    mbedtls_mpi_init( &Q ); mbedtls_mpi_init( &E );
 
-    memset( message_str, 0x00, 1000 );
-    memset( hash_result, 0x00, 1000 );
     memset( output, 0x00, 1000 );
-    memset( output_str, 0x00, 1000 );
     memset( &rnd_info, 0, sizeof( rnd_pseudo_info ) );
 
-    RSA_claim_bit_length(mod);
-    ctx.len = mod / 8;
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.P, radix_P, input_P ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.Q, radix_Q, input_Q ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.N, radix_N, input_N ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.E, radix_E, input_E ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &P, radix_P, input_P ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &Q, radix_Q, input_Q ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &N, radix_N, input_N ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
 
-    TEST_ASSERT( mbedtls_mpi_sub_int( &P1, &ctx.P, 1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_sub_int( &Q1, &ctx.Q, 1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_mul_mpi( &H, &P1, &Q1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_gcd( &G, &ctx.E, &H  ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_inv_mod( &ctx.D, &ctx.E, &H  ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_mod_mpi( &ctx.DP, &ctx.D, &P1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_mod_mpi( &ctx.DQ, &ctx.D, &Q1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_inv_mod( &ctx.QP, &ctx.Q, &ctx.P ) == 0 );
-
+    TEST_ASSERT( mbedtls_rsa_import( &ctx, &N, &P, &Q, NULL, &E ) == 0 );
+    TEST_ASSERT( mbedtls_rsa_get_len( &ctx ) == (size_t) ( mod / 8 ) );
+    TEST_ASSERT( mbedtls_rsa_complete( &ctx ) == 0 );
     TEST_ASSERT( mbedtls_rsa_check_privkey( &ctx ) == 0 );
 
-    unhexify( message_str, message_hex_string );
-    hash_len = unhexify( hash_result, hash_result_string );
 
-    TEST_ASSERT( mbedtls_rsa_pkcs1_sign( &ctx, &rnd_pseudo_rand, &rnd_info, MBEDTLS_RSA_PRIVATE, MBEDTLS_MD_NONE, hash_len, hash_result, output ) == 0 );
+    TEST_ASSERT( mbedtls_rsa_pkcs1_sign( &ctx, &rnd_pseudo_rand, &rnd_info,
+                                         MBEDTLS_RSA_PRIVATE, MBEDTLS_MD_NONE,
+                                         hash_result->len, hash_result->x,
+                                         output ) == 0 );
 
-    hexify( output_str, output, ctx.len );
 
-    TEST_ASSERT( strcasecmp( (char *) output_str, result_hex_str ) == 0 );
+    TEST_ASSERT( hexcmp( output, result_hex_str->x, ctx.len, result_hex_str->len ) == 0 );
 
+#if defined(MBEDTLS_PKCS1_V15)
     /* For PKCS#1 v1.5, there is an alternative way to generate signatures */
     if( padding_mode == MBEDTLS_RSA_PKCS_V15 )
     {
+        int res;
         memset( output, 0x00, 1000 );
-        memset( output_str, 0x00, 1000 );
 
-        TEST_ASSERT( mbedtls_rsa_rsaes_pkcs1_v15_encrypt( &ctx,
-                     &rnd_pseudo_rand, &rnd_info, MBEDTLS_RSA_PRIVATE,
-                     hash_len, hash_result, output ) == 0 );
+        res = mbedtls_rsa_rsaes_pkcs1_v15_encrypt( &ctx,
+                    &rnd_pseudo_rand, &rnd_info, MBEDTLS_RSA_PRIVATE,
+                    hash_result->len, hash_result->x, output );
 
-        hexify( output_str, output, ctx.len );
+#if !defined(MBEDTLS_RSA_ALT)
+        TEST_ASSERT( res == 0 );
+#else
+        TEST_ASSERT( ( res == 0 ) ||
+                     ( res == MBEDTLS_ERR_RSA_UNSUPPORTED_OPERATION ) );
+#endif
 
-        TEST_ASSERT( strcasecmp( (char *) output_str, result_hex_str ) == 0 );
+        if( res == 0 )
+        {
+            TEST_ASSERT( hexcmp( output, result_hex_str->x, ctx.len, result_hex_str->len ) == 0 );
+        }
     }
+#endif /* MBEDTLS_PKCS1_V15 */
 
 exit:
-    mbedtls_mpi_free( &P1 );
-    mbedtls_mpi_free( &Q1 );
-    mbedtls_mpi_free( &H );
-    mbedtls_mpi_free( &G );
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &P );
+    mbedtls_mpi_free( &Q ); mbedtls_mpi_free( &E );
+
     mbedtls_rsa_free( &ctx );
 }
 
-void test_suite_rsa_pkcs1_verify_raw( char *message_hex_string, char *hash_result_string,
-                                      int padding_mode, int mod, int radix_N,
-                                      char *input_N, int radix_E, char *input_E,
-                                      char *result_hex_str, int correct )
+void test_rsa_pkcs1_sign_raw_wrapper( void ** params )
 {
-    unsigned char message_str[1000];
-    unsigned char hash_result[1000];
-    unsigned char result_str[1000];
+    data_t data0;
+    data_t data12;
+    
+    data0.x = (uint8_t *) params[0];
+    data0.len = *( (uint32_t *) params[1] );
+    data12.x = (uint8_t *) params[12];
+    data12.len = *( (uint32_t *) params[13] );
+
+    test_rsa_pkcs1_sign_raw( &data0, *( (int *) params[2] ), *( (int *) params[3] ), *( (int *) params[4] ), (char *) params[5], *( (int *) params[6] ), (char *) params[7], *( (int *) params[8] ), (char *) params[9], *( (int *) params[10] ), (char *) params[11], &data12 );
+}
+
+void test_rsa_pkcs1_verify_raw( data_t * hash_result,
+                           int padding_mode, int mod, int radix_N,
+                           char * input_N, int radix_E, char * input_E,
+                           data_t * result_str, int correct )
+{
     unsigned char output[1000];
     mbedtls_rsa_context ctx;
-    size_t hash_len, olen;
+
+    mbedtls_mpi N, E;
+    mbedtls_mpi_init( &N ); mbedtls_mpi_init( &E );
 
     mbedtls_rsa_init( &ctx, padding_mode, 0 );
-    memset( message_str, 0x00, 1000 );
-    memset( hash_result, 0x00, 1000 );
-    memset( result_str, 0x00, 1000 );
     memset( output, 0x00, sizeof( output ) );
 
-    RSA_claim_bit_length(mod);
-    ctx.len = mod / 8;
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.N, radix_N, input_N ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.E, radix_E, input_E ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &N, radix_N, input_N ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
 
+    TEST_ASSERT( mbedtls_rsa_import( &ctx, &N, NULL, NULL, NULL, &E ) == 0 );
+    TEST_ASSERT( mbedtls_rsa_get_len( &ctx ) == (size_t) ( mod / 8 ) );
     TEST_ASSERT( mbedtls_rsa_check_pubkey( &ctx ) == 0 );
 
-    unhexify( message_str, message_hex_string );
-    hash_len = unhexify( hash_result, hash_result_string );
-    unhexify( result_str, result_hex_str );
 
-    TEST_ASSERT( mbedtls_rsa_pkcs1_verify( &ctx, NULL, NULL, MBEDTLS_RSA_PUBLIC, MBEDTLS_MD_NONE, hash_len, hash_result, result_str ) == correct );
+    TEST_ASSERT( mbedtls_rsa_pkcs1_verify( &ctx, NULL, NULL, MBEDTLS_RSA_PUBLIC, MBEDTLS_MD_NONE, hash_result->len, hash_result->x, result_str->x ) == correct );
 
+#if defined(MBEDTLS_PKCS1_V15)
     /* For PKCS#1 v1.5, there is an alternative way to verify signatures */
     if( padding_mode == MBEDTLS_RSA_PKCS_V15 )
     {
+        int res;
         int ok;
+        size_t olen;
 
-        TEST_ASSERT( mbedtls_rsa_rsaes_pkcs1_v15_decrypt( &ctx,
-                     NULL, NULL, MBEDTLS_RSA_PUBLIC,
-                     &olen, result_str, output, sizeof( output ) ) == 0 );
+        res = mbedtls_rsa_rsaes_pkcs1_v15_decrypt( &ctx,
+                    NULL, NULL, MBEDTLS_RSA_PUBLIC,
+                    &olen, result_str->x, output, sizeof( output ) );
 
-        ok = olen == hash_len && memcmp( output, hash_result, olen ) == 0;
-        if( correct == 0 )
-            TEST_ASSERT( ok == 1 );
-        else
-            TEST_ASSERT( ok == 0 );
+#if !defined(MBEDTLS_RSA_ALT)
+        TEST_ASSERT( res == 0 );
+#else
+        TEST_ASSERT( ( res == 0 ) ||
+                     ( res == MBEDTLS_ERR_RSA_UNSUPPORTED_OPERATION ) );
+#endif
+
+        if( res == 0 )
+        {
+            ok = olen == hash_result->len && memcmp( output, hash_result->x, olen ) == 0;
+            if( correct == 0 )
+                TEST_ASSERT( ok == 1 );
+            else
+                TEST_ASSERT( ok == 0 );
+        }
     }
+#endif /* MBEDTLS_PKCS1_V15 */
 
 exit:
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &E );
     mbedtls_rsa_free( &ctx );
 }
 
-void test_suite_mbedtls_rsa_pkcs1_encrypt( char *message_hex_string, int padding_mode, int mod,
-        int radix_N, char *input_N, int radix_E, char *input_E,
-        char *result_hex_str, int result )
+void test_rsa_pkcs1_verify_raw_wrapper( void ** params )
 {
-    unsigned char message_str[1000];
+    data_t data0;
+    data_t data8;
+    
+    data0.x = (uint8_t *) params[0];
+    data0.len = *( (uint32_t *) params[1] );
+    data8.x = (uint8_t *) params[8];
+    data8.len = *( (uint32_t *) params[9] );
+
+    test_rsa_pkcs1_verify_raw( &data0, *( (int *) params[2] ), *( (int *) params[3] ), *( (int *) params[4] ), (char *) params[5], *( (int *) params[6] ), (char *) params[7], &data8, *( (int *) params[10] ) );
+}
+
+void test_mbedtls_rsa_pkcs1_encrypt( data_t * message_str, int padding_mode,
+                                int mod, int radix_N, char * input_N,
+                                int radix_E, char * input_E,
+                                data_t * result_hex_str, int result )
+{
     unsigned char output[1000];
-    unsigned char output_str[1000];
     mbedtls_rsa_context ctx;
-    size_t msg_len;
     rnd_pseudo_info rnd_info;
+
+    mbedtls_mpi N, E;
+    mbedtls_mpi_init( &N ); mbedtls_mpi_init( &E );
 
     memset( &rnd_info, 0, sizeof( rnd_pseudo_info ) );
 
     mbedtls_rsa_init( &ctx, padding_mode, 0 );
-    memset( message_str, 0x00, 1000 );
     memset( output, 0x00, 1000 );
-    memset( output_str, 0x00, 1000 );
 
-    RSA_claim_bit_length(mod);
-    ctx.len = mod / 8;
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.N, radix_N, input_N ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.E, radix_E, input_E ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &N, radix_N, input_N ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
 
+    TEST_ASSERT( mbedtls_rsa_import( &ctx, &N, NULL, NULL, NULL, &E ) == 0 );
+    TEST_ASSERT( mbedtls_rsa_get_len( &ctx ) == (size_t) ( mod / 8 ) );
     TEST_ASSERT( mbedtls_rsa_check_pubkey( &ctx ) == 0 );
 
-    msg_len = unhexify( message_str, message_hex_string );
 
-    TEST_ASSERT( mbedtls_rsa_pkcs1_encrypt( &ctx, &rnd_pseudo_rand, &rnd_info, MBEDTLS_RSA_PUBLIC, msg_len, message_str, output ) == result );
+    TEST_ASSERT( mbedtls_rsa_pkcs1_encrypt( &ctx, &rnd_pseudo_rand, &rnd_info,
+                                            MBEDTLS_RSA_PUBLIC, message_str->len,
+                                            message_str->x, output ) == result );
     if( result == 0 )
     {
-        hexify( output_str, output, ctx.len );
 
-        TEST_ASSERT( strcasecmp( (char *) output_str, result_hex_str ) == 0 );
+        TEST_ASSERT( hexcmp( output, result_hex_str->x, ctx.len, result_hex_str->len ) == 0 );
     }
 
 exit:
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &E );
     mbedtls_rsa_free( &ctx );
 }
 
-void test_suite_rsa_pkcs1_encrypt_bad_rng( char *message_hex_string, int padding_mode,
-        int mod, int radix_N, char *input_N,
-        int radix_E, char *input_E,
-        char *result_hex_str, int result )
+void test_mbedtls_rsa_pkcs1_encrypt_wrapper( void ** params )
 {
-    unsigned char message_str[1000];
-    unsigned char output[1000];
-    unsigned char output_str[1000];
-    mbedtls_rsa_context ctx;
-    size_t msg_len;
+    data_t data0;
+    data_t data8;
+    
+    data0.x = (uint8_t *) params[0];
+    data0.len = *( (uint32_t *) params[1] );
+    data8.x = (uint8_t *) params[8];
+    data8.len = *( (uint32_t *) params[9] );
 
+    test_mbedtls_rsa_pkcs1_encrypt( &data0, *( (int *) params[2] ), *( (int *) params[3] ), *( (int *) params[4] ), (char *) params[5], *( (int *) params[6] ), (char *) params[7], &data8, *( (int *) params[10] ) );
+}
+
+void test_rsa_pkcs1_encrypt_bad_rng( data_t * message_str, int padding_mode,
+                                int mod, int radix_N, char * input_N,
+                                int radix_E, char * input_E,
+                                data_t * result_hex_str, int result )
+{
+    unsigned char output[1000];
+    mbedtls_rsa_context ctx;
+
+    mbedtls_mpi N, E;
+
+    mbedtls_mpi_init( &N ); mbedtls_mpi_init( &E );
     mbedtls_rsa_init( &ctx, padding_mode, 0 );
-    memset( message_str, 0x00, 1000 );
     memset( output, 0x00, 1000 );
-    memset( output_str, 0x00, 1000 );
 
-    RSA_claim_bit_length(mod);
-    ctx.len = mod / 8;
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.N, radix_N, input_N ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.E, radix_E, input_E ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &N, radix_N, input_N ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
 
+    TEST_ASSERT( mbedtls_rsa_import( &ctx, &N, NULL, NULL, NULL, &E ) == 0 );
+    TEST_ASSERT( mbedtls_rsa_get_len( &ctx ) == (size_t) ( mod / 8 ) );
     TEST_ASSERT( mbedtls_rsa_check_pubkey( &ctx ) == 0 );
 
-    msg_len = unhexify( message_str, message_hex_string );
 
-    TEST_ASSERT( mbedtls_rsa_pkcs1_encrypt( &ctx, &rnd_zero_rand, NULL, MBEDTLS_RSA_PUBLIC, msg_len, message_str, output ) == result );
+    TEST_ASSERT( mbedtls_rsa_pkcs1_encrypt( &ctx, &rnd_zero_rand, NULL,
+                                            MBEDTLS_RSA_PUBLIC, message_str->len,
+                                            message_str->x, output ) == result );
     if( result == 0 )
     {
-        hexify( output_str, output, ctx.len );
 
-        TEST_ASSERT( strcasecmp( (char *) output_str, result_hex_str ) == 0 );
+        TEST_ASSERT( hexcmp( output, result_hex_str->x, ctx.len, result_hex_str->len ) == 0 );
     }
 
 exit:
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &E );
     mbedtls_rsa_free( &ctx );
 }
 
-void test_suite_mbedtls_rsa_pkcs1_decrypt( char *message_hex_string, int padding_mode, int mod,
-        int radix_P, char *input_P, int radix_Q, char *input_Q,
-        int radix_N, char *input_N, int radix_E, char *input_E,
-        int max_output, char *result_hex_str, int result )
+void test_rsa_pkcs1_encrypt_bad_rng_wrapper( void ** params )
 {
-    unsigned char message_str[1000];
+    data_t data0;
+    data_t data8;
+    
+    data0.x = (uint8_t *) params[0];
+    data0.len =  *( (uint32_t *) params[1] );
+    data8.x = (uint8_t *) params[8];
+    data8.len = *( (uint32_t *) params[9] );
+
+    test_rsa_pkcs1_encrypt_bad_rng( &data0, *( (int *) params[2] ), *( (int *) params[3] ), *( (int *) params[4] ), (char *) params[5], *( (int *) params[6] ), (char *) params[7], &data8, *( (int *) params[10] ) );
+}
+
+void test_mbedtls_rsa_pkcs1_decrypt( data_t * message_str, int padding_mode,
+                                int mod, int radix_P, char * input_P,
+                                int radix_Q, char * input_Q, int radix_N,
+                                char * input_N, int radix_E, char * input_E,
+                                int max_output, data_t * result_hex_str,
+                                int result )
+{
     unsigned char output[1000];
-    unsigned char output_str[1000];
     mbedtls_rsa_context ctx;
-    mbedtls_mpi P1, Q1, H, G;
     size_t output_len;
     rnd_pseudo_info rnd_info;
+    mbedtls_mpi N, P, Q, E;
 
-    mbedtls_mpi_init( &P1 );
-    mbedtls_mpi_init( &Q1 );
-    mbedtls_mpi_init( &H );
-    mbedtls_mpi_init( &G );
+    mbedtls_mpi_init( &N ); mbedtls_mpi_init( &P );
+    mbedtls_mpi_init( &Q ); mbedtls_mpi_init( &E );
+
     mbedtls_rsa_init( &ctx, padding_mode, 0 );
 
-    memset( message_str, 0x00, 1000 );
     memset( output, 0x00, 1000 );
-    memset( output_str, 0x00, 1000 );
     memset( &rnd_info, 0, sizeof( rnd_pseudo_info ) );
 
-    RSA_claim_bit_length(mod);
-    ctx.len = mod / 8;
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.P, radix_P, input_P ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.Q, radix_Q, input_Q ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.N, radix_N, input_N ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.E, radix_E, input_E ) == 0 );
 
-    TEST_ASSERT( mbedtls_mpi_sub_int( &P1, &ctx.P, 1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_sub_int( &Q1, &ctx.Q, 1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_mul_mpi( &H, &P1, &Q1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_gcd( &G, &ctx.E, &H  ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_inv_mod( &ctx.D, &ctx.E, &H  ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_mod_mpi( &ctx.DP, &ctx.D, &P1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_mod_mpi( &ctx.DQ, &ctx.D, &Q1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_inv_mod( &ctx.QP, &ctx.Q, &ctx.P ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &P, radix_P, input_P ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &Q, radix_Q, input_Q ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &N, radix_N, input_N ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
 
+    TEST_ASSERT( mbedtls_rsa_import( &ctx, &N, &P, &Q, NULL, &E ) == 0 );
+    TEST_ASSERT( mbedtls_rsa_get_len( &ctx ) == (size_t) ( mod / 8 ) );
+    TEST_ASSERT( mbedtls_rsa_complete( &ctx ) == 0 );
     TEST_ASSERT( mbedtls_rsa_check_privkey( &ctx ) == 0 );
 
-    unhexify( message_str, message_hex_string );
     output_len = 0;
 
-    TEST_ASSERT( mbedtls_rsa_pkcs1_decrypt( &ctx, rnd_pseudo_rand, &rnd_info, MBEDTLS_RSA_PRIVATE, &output_len, message_str, output, max_output ) == result );
+    TEST_ASSERT( mbedtls_rsa_pkcs1_decrypt( &ctx, rnd_pseudo_rand, &rnd_info, MBEDTLS_RSA_PRIVATE, &output_len, message_str->x, output, max_output ) == result );
     if( result == 0 )
     {
-        hexify( output_str, output, ctx.len );
 
-        TEST_ASSERT( strncasecmp( (char *) output_str, result_hex_str, strlen( result_hex_str ) ) == 0 );
+        TEST_ASSERT( hexcmp( output, result_hex_str->x, output_len, result_hex_str->len ) == 0 );
     }
 
 exit:
-    mbedtls_mpi_free( &P1 );
-    mbedtls_mpi_free( &Q1 );
-    mbedtls_mpi_free( &H );
-    mbedtls_mpi_free( &G );
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &P );
+    mbedtls_mpi_free( &Q ); mbedtls_mpi_free( &E );
     mbedtls_rsa_free( &ctx );
 }
 
-void test_suite_mbedtls_rsa_public( char *message_hex_string, int mod, int radix_N, char *input_N,
-                                    int radix_E, char *input_E, char *result_hex_str, int result )
+void test_mbedtls_rsa_pkcs1_decrypt_wrapper( void ** params )
 {
-    unsigned char message_str[1000];
+    data_t data0;
+    data_t data13;
+
+    data0.x = (uint8_t *) params[0];
+    data0.len =  *( (uint32_t *) params[1] );
+    data13.x = (uint8_t *) params[13];
+    data13.len = *( (uint32_t *) params[14] );
+
+    test_mbedtls_rsa_pkcs1_decrypt( &data0, *( (int *) params[2] ), *( (int *) params[3] ), *( (int *) params[4] ), (char *) params[5], *( (int *) params[6] ), (char *) params[7], *( (int *) params[8] ), (char *) params[9], *( (int *) params[10] ), (char *) params[11], *( (int *) params[12] ), &data13, *( (int *) params[15] ) );
+}
+
+void test_mbedtls_rsa_public( data_t * message_str, int mod, int radix_N,
+                         char * input_N, int radix_E, char * input_E,
+                         data_t * result_hex_str, int result )
+{
     unsigned char output[1000];
-    unsigned char output_str[1000];
     mbedtls_rsa_context ctx, ctx2; /* Also test mbedtls_rsa_copy() while at it */
 
+    mbedtls_mpi N, E;
+
+    mbedtls_mpi_init( &N ); mbedtls_mpi_init( &E );
     mbedtls_rsa_init( &ctx, MBEDTLS_RSA_PKCS_V15, 0 );
     mbedtls_rsa_init( &ctx2, MBEDTLS_RSA_PKCS_V15, 0 );
-    memset( message_str, 0x00, 1000 );
     memset( output, 0x00, 1000 );
-    memset( output_str, 0x00, 1000 );
 
-    RSA_claim_bit_length(mod);
-    ctx.len = mod / 8;
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.N, radix_N, input_N ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.E, radix_E, input_E ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &N, radix_N, input_N ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
 
+    TEST_ASSERT( mbedtls_rsa_import( &ctx, &N, NULL, NULL, NULL, &E ) == 0 );
+    TEST_ASSERT( mbedtls_rsa_get_len( &ctx ) == (size_t) ( mod / 8 ) );
     TEST_ASSERT( mbedtls_rsa_check_pubkey( &ctx ) == 0 );
 
-    unhexify( message_str, message_hex_string );
 
-    TEST_ASSERT( mbedtls_rsa_public( &ctx, message_str, output ) == result );
+    TEST_ASSERT( mbedtls_rsa_public( &ctx, message_str->x, output ) == result );
     if( result == 0 )
     {
-        hexify( output_str, output, ctx.len );
 
-        TEST_ASSERT( strcasecmp( (char *) output_str, result_hex_str ) == 0 );
+        TEST_ASSERT( hexcmp( output, result_hex_str->x, ctx.len, result_hex_str->len ) == 0 );
     }
 
     /* And now with the copy */
@@ -934,75 +887,72 @@ void test_suite_mbedtls_rsa_public( char *message_hex_string, int mod, int radix
     TEST_ASSERT( mbedtls_rsa_check_pubkey( &ctx2 ) == 0 );
 
     memset( output, 0x00, 1000 );
-    memset( output_str, 0x00, 1000 );
-    TEST_ASSERT( mbedtls_rsa_public( &ctx2, message_str, output ) == result );
+    TEST_ASSERT( mbedtls_rsa_public( &ctx2, message_str->x, output ) == result );
     if( result == 0 )
     {
-        hexify( output_str, output, ctx2.len );
 
-        TEST_ASSERT( strcasecmp( (char *) output_str, result_hex_str ) == 0 );
+        TEST_ASSERT( hexcmp( output, result_hex_str->x, ctx.len, result_hex_str->len ) == 0 );
     }
 
 exit:
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &E );
     mbedtls_rsa_free( &ctx );
     mbedtls_rsa_free( &ctx2 );
 }
 
-void test_suite_mbedtls_rsa_private( char *message_hex_string, int mod, int radix_P, char *input_P,
-                                     int radix_Q, char *input_Q, int radix_N, char *input_N,
-                                     int radix_E, char *input_E, char *result_hex_str, int result )
+void test_mbedtls_rsa_public_wrapper( void ** params )
 {
-    unsigned char message_str[1000];
+    data_t data0;
+    data_t data7;
+
+    data0.x = (uint8_t *) params[0];
+    data0.len =  *( (uint32_t *) params[1] );
+    data7.x = (uint8_t *) params[7];
+    data7.len = *( (uint32_t *) params[8] );
+
+    test_mbedtls_rsa_public( &data0, *( (int *) params[2] ), *( (int *) params[3] ), (char *) params[4], *( (int *) params[5] ), (char *) params[6], &data7, *( (int *) params[9] ) );
+}
+
+void test_mbedtls_rsa_private( data_t * message_str, int mod, int radix_P,
+                          char * input_P, int radix_Q, char * input_Q,
+                          int radix_N, char * input_N, int radix_E,
+                          char * input_E, data_t * result_hex_str,
+                          int result )
+{
     unsigned char output[1000];
-    unsigned char output_str[1000];
     mbedtls_rsa_context ctx, ctx2; /* Also test mbedtls_rsa_copy() while at it */
-    mbedtls_mpi P1, Q1, H, G;
+    mbedtls_mpi N, P, Q, E;
     rnd_pseudo_info rnd_info;
     int i;
 
-    mbedtls_mpi_init( &P1 );
-    mbedtls_mpi_init( &Q1 );
-    mbedtls_mpi_init( &H );
-    mbedtls_mpi_init( &G );
+    mbedtls_mpi_init( &N ); mbedtls_mpi_init( &P );
+    mbedtls_mpi_init( &Q ); mbedtls_mpi_init( &E );
     mbedtls_rsa_init( &ctx, MBEDTLS_RSA_PKCS_V15, 0 );
     mbedtls_rsa_init( &ctx2, MBEDTLS_RSA_PKCS_V15, 0 );
 
-    memset( message_str, 0x00, 1000 );
     memset( &rnd_info, 0, sizeof( rnd_pseudo_info ) );
 
-    RSA_claim_bit_length(mod);
-    ctx.len = mod / 8;
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.P, radix_P, input_P ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.Q, radix_Q, input_Q ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.N, radix_N, input_N ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_read_string( &ctx.E, radix_E, input_E ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &P, radix_P, input_P ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &Q, radix_Q, input_Q ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &N, radix_N, input_N ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
 
-    TEST_ASSERT( mbedtls_mpi_sub_int( &P1, &ctx.P, 1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_sub_int( &Q1, &ctx.Q, 1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_mul_mpi( &H, &P1, &Q1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_gcd( &G, &ctx.E, &H  ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_inv_mod( &ctx.D, &ctx.E, &H  ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_mod_mpi( &ctx.DP, &ctx.D, &P1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_mod_mpi( &ctx.DQ, &ctx.D, &Q1 ) == 0 );
-    TEST_ASSERT( mbedtls_mpi_inv_mod( &ctx.QP, &ctx.Q, &ctx.P ) == 0 );
-
+    TEST_ASSERT( mbedtls_rsa_import( &ctx, &N, &P, &Q, NULL, &E ) == 0 );
+    TEST_ASSERT( mbedtls_rsa_get_len( &ctx ) == (size_t) ( mod / 8 ) );
+    TEST_ASSERT( mbedtls_rsa_complete( &ctx ) == 0 );
     TEST_ASSERT( mbedtls_rsa_check_privkey( &ctx ) == 0 );
 
-    unhexify( message_str, message_hex_string );
 
     /* repeat three times to test updating of blinding values */
     for( i = 0; i < 3; i++ )
     {
         memset( output, 0x00, 1000 );
-        memset( output_str, 0x00, 1000 );
         TEST_ASSERT( mbedtls_rsa_private( &ctx, rnd_pseudo_rand, &rnd_info,
-                                          message_str, output ) == result );
+                                  message_str->x, output ) == result );
         if( result == 0 )
         {
-            hexify( output_str, output, ctx.len );
 
-            TEST_ASSERT( strcasecmp( (char *) output_str,
-                                     result_hex_str ) == 0 );
+            TEST_ASSERT( hexcmp( output, result_hex_str->x, ctx.len, result_hex_str->len ) == 0 );
         }
     }
 
@@ -1014,71 +964,95 @@ void test_suite_mbedtls_rsa_private( char *message_hex_string, int mod, int radi
     TEST_ASSERT( mbedtls_rsa_check_privkey( &ctx2 ) == 0 );
 
     memset( output, 0x00, 1000 );
-    memset( output_str, 0x00, 1000 );
     TEST_ASSERT( mbedtls_rsa_private( &ctx2, rnd_pseudo_rand, &rnd_info,
-                                      message_str, output ) == result );
+                              message_str->x, output ) == result );
     if( result == 0 )
     {
-        hexify( output_str, output, ctx2.len );
 
-        TEST_ASSERT( strcasecmp( (char *) output_str,
-                                 result_hex_str ) == 0 );
+        TEST_ASSERT( hexcmp( output, result_hex_str->x, ctx2.len, result_hex_str->len ) == 0 );
     }
 
 exit:
-    mbedtls_mpi_free( &P1 );
-    mbedtls_mpi_free( &Q1 );
-    mbedtls_mpi_free( &H );
-    mbedtls_mpi_free( &G );
-    mbedtls_rsa_free( &ctx );
-    mbedtls_rsa_free( &ctx2 );
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &P );
+    mbedtls_mpi_free( &Q ); mbedtls_mpi_free( &E );
+
+    mbedtls_rsa_free( &ctx ); mbedtls_rsa_free( &ctx2 );
 }
 
-void test_suite_rsa_check_privkey_null()
+void test_mbedtls_rsa_private_wrapper( void ** params )
+{
+    data_t data0;
+    data_t data11;
+
+    data0.x = (uint8_t *) params[0];
+    data0.len =  *( (uint32_t *) params[1] );
+    data11.x = (uint8_t *) params[11];
+    data11.len = *( (uint32_t *) params[12] );
+
+    test_mbedtls_rsa_private( &data0, *( (int *) params[2] ), *( (int *) params[3] ), (char *) params[4], *( (int *) params[5] ), (char *) params[6], *( (int *) params[7] ), (char *) params[8], *( (int *) params[9] ), (char *) params[10], &data11, *( (int *) params[13] ) );
+}
+
+void test_rsa_check_privkey_null(  )
 {
     mbedtls_rsa_context ctx;
     memset( &ctx, 0x00, sizeof( mbedtls_rsa_context ) );
 
     TEST_ASSERT( mbedtls_rsa_check_privkey( &ctx ) == MBEDTLS_ERR_RSA_KEY_CHECK_FAILED );
-
 exit:
-    return;
+    ;
 }
 
-void test_suite_mbedtls_rsa_check_pubkey( int radix_N, char *input_N, int radix_E, char *input_E,
-        int result )
+void test_rsa_check_privkey_null_wrapper( void ** params )
+{
+    (void)params;
+
+    test_rsa_check_privkey_null(  );
+}
+
+void test_mbedtls_rsa_check_pubkey( int radix_N, char * input_N, int radix_E,
+                               char * input_E, int result )
 {
     mbedtls_rsa_context ctx;
+    mbedtls_mpi N, E;
 
+    mbedtls_mpi_init( &N ); mbedtls_mpi_init( &E );
     mbedtls_rsa_init( &ctx, MBEDTLS_RSA_PKCS_V15, 0 );
 
     if( strlen( input_N ) )
     {
-        TEST_ASSERT( mbedtls_mpi_read_string( &ctx.N, radix_N, input_N ) == 0 );
+        TEST_ASSERT( mbedtls_mpi_read_string( &N, radix_N, input_N ) == 0 );
     }
     if( strlen( input_E ) )
     {
-        TEST_ASSERT( mbedtls_mpi_read_string( &ctx.E, radix_E, input_E ) == 0 );
+        TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
     }
 
+    TEST_ASSERT( mbedtls_rsa_import( &ctx, &N, NULL, NULL, NULL, &E ) == 0 );
     TEST_ASSERT( mbedtls_rsa_check_pubkey( &ctx ) == result );
 
 exit:
+    mbedtls_mpi_free( &N ); mbedtls_mpi_free( &E );
     mbedtls_rsa_free( &ctx );
 }
 
-void test_suite_mbedtls_rsa_check_privkey( int mod, int radix_P, char *input_P, int radix_Q,
-        char *input_Q, int radix_N, char *input_N,
-        int radix_E, char *input_E, int radix_D, char *input_D,
-        int radix_DP, char *input_DP, int radix_DQ,
-        char *input_DQ, int radix_QP, char *input_QP,
-        int result )
+void test_mbedtls_rsa_check_pubkey_wrapper( void ** params )
+{
+
+    test_mbedtls_rsa_check_pubkey( *( (int *) params[0] ), (char *) params[1], *( (int *) params[2] ), (char *) params[3], *( (int *) params[4] ) );
+}
+
+void test_mbedtls_rsa_check_privkey( int mod, int radix_P, char * input_P,
+                                int radix_Q, char * input_Q, int radix_N,
+                                char * input_N, int radix_E, char * input_E,
+                                int radix_D, char * input_D, int radix_DP,
+                                char * input_DP, int radix_DQ,
+                                char * input_DQ, int radix_QP,
+                                char * input_QP, int result )
 {
     mbedtls_rsa_context ctx;
 
     mbedtls_rsa_init( &ctx, MBEDTLS_RSA_PKCS_V15, 0 );
 
-    RSA_claim_bit_length(mod);
     ctx.len = mod / 8;
     if( strlen( input_P ) )
     {
@@ -1100,6 +1074,7 @@ void test_suite_mbedtls_rsa_check_privkey( int mod, int radix_P, char *input_P, 
     {
         TEST_ASSERT( mbedtls_mpi_read_string( &ctx.D, radix_D, input_D ) == 0 );
     }
+#if !defined(MBEDTLS_RSA_NO_CRT)
     if( strlen( input_DP ) )
     {
         TEST_ASSERT( mbedtls_mpi_read_string( &ctx.DP, radix_DP, input_DP ) == 0 );
@@ -1112,6 +1087,11 @@ void test_suite_mbedtls_rsa_check_privkey( int mod, int radix_P, char *input_P, 
     {
         TEST_ASSERT( mbedtls_mpi_read_string( &ctx.QP, radix_QP, input_QP ) == 0 );
     }
+#else
+    ((void) radix_DP); ((void) input_DP);
+    ((void) radix_DQ); ((void) input_DQ);
+    ((void) radix_QP); ((void) input_QP);
+#endif
 
     TEST_ASSERT( mbedtls_rsa_check_privkey( &ctx ) == result );
 
@@ -1119,14 +1099,20 @@ exit:
     mbedtls_rsa_free( &ctx );
 }
 
-void test_suite_rsa_check_pubpriv( int mod, int radix_Npub, char *input_Npub,
-                                   int radix_Epub, char *input_Epub,
-                                   int radix_P, char *input_P, int radix_Q,
-                                   char *input_Q, int radix_N, char *input_N,
-                                   int radix_E, char *input_E, int radix_D, char *input_D,
-                                   int radix_DP, char *input_DP, int radix_DQ,
-                                   char *input_DQ, int radix_QP, char *input_QP,
-                                   int result )
+void test_mbedtls_rsa_check_privkey_wrapper( void ** params )
+{
+
+    test_mbedtls_rsa_check_privkey( *( (int *) params[0] ), *( (int *) params[1] ), (char *) params[2], *( (int *) params[3] ), (char *) params[4], *( (int *) params[5] ), (char *) params[6], *( (int *) params[7] ), (char *) params[8], *( (int *) params[9] ), (char *) params[10], *( (int *) params[11] ), (char *) params[12], *( (int *) params[13] ), (char *) params[14], *( (int *) params[15] ), (char *) params[16], *( (int *) params[17] ) );
+}
+
+void test_rsa_check_pubpriv( int mod, int radix_Npub, char * input_Npub,
+                        int radix_Epub, char * input_Epub, int radix_P,
+                        char * input_P, int radix_Q, char * input_Q,
+                        int radix_N, char * input_N, int radix_E,
+                        char * input_E, int radix_D, char * input_D,
+                        int radix_DP, char * input_DP, int radix_DQ,
+                        char * input_DQ, int radix_QP, char * input_QP,
+                        int result )
 {
     mbedtls_rsa_context pub, prv;
 
@@ -1165,6 +1151,7 @@ void test_suite_rsa_check_pubpriv( int mod, int radix_Npub, char *input_Npub,
     {
         TEST_ASSERT( mbedtls_mpi_read_string( &prv.D, radix_D, input_D ) == 0 );
     }
+#if !defined(MBEDTLS_RSA_NO_CRT)
     if( strlen( input_DP ) )
     {
         TEST_ASSERT( mbedtls_mpi_read_string( &prv.DP, radix_DP, input_DP ) == 0 );
@@ -1177,6 +1164,11 @@ void test_suite_rsa_check_pubpriv( int mod, int radix_Npub, char *input_Npub,
     {
         TEST_ASSERT( mbedtls_mpi_read_string( &prv.QP, radix_QP, input_QP ) == 0 );
     }
+#else
+    ((void) radix_DP); ((void) input_DP);
+    ((void) radix_DQ); ((void) input_DQ);
+    ((void) radix_QP); ((void) input_QP);
+#endif
 
     TEST_ASSERT( mbedtls_rsa_check_pub_priv( &pub, &prv ) == result );
 
@@ -1185,9 +1177,16 @@ exit:
     mbedtls_rsa_free( &prv );
 }
 
-#ifdef MBEDTLS_CTR_DRBG_C
-#ifdef MBEDTLS_ENTROPY_C
-void test_suite_mbedtls_rsa_gen_key( int nrbits, int exponent, int result)
+void test_rsa_check_pubpriv_wrapper( void ** params )
+{
+
+    test_rsa_check_pubpriv( *( (int *) params[0] ), *( (int *) params[1] ), (char *) params[2], *( (int *) params[3] ), (char *) params[4], *( (int *) params[5] ), (char *) params[6], *( (int *) params[7] ), (char *) params[8], *( (int *) params[9] ), (char *) params[10], *( (int *) params[11] ), (char *) params[12], *( (int *) params[13] ), (char *) params[14], *( (int *) params[15] ), (char *) params[16], *( (int *) params[17] ), (char *) params[18], *( (int *) params[19] ), (char *) params[20], *( (int *) params[21] ) );
+}
+#if defined(MBEDTLS_CTR_DRBG_C)
+#if defined(MBEDTLS_ENTROPY_C)
+#if defined(ENTROPY_HAVE_STRONG)
+
+void test_mbedtls_rsa_gen_key( int nrbits, int exponent, int result)
 {
     mbedtls_rsa_context ctx;
     mbedtls_entropy_context entropy;
@@ -1195,12 +1194,12 @@ void test_suite_mbedtls_rsa_gen_key( int nrbits, int exponent, int result)
     const char *pers = "test_suite_rsa";
 
     mbedtls_ctr_drbg_init( &ctr_drbg );
-
     mbedtls_entropy_init( &entropy );
-    TEST_ASSERT( mbedtls_ctr_drbg_seed( &ctr_drbg, mbedtls_entropy_func, &entropy,
-                                        (const unsigned char *) pers, strlen( pers ) ) == 0 );
+    mbedtls_rsa_init ( &ctx, 0, 0 );
 
-    mbedtls_rsa_init( &ctx, 0, 0 );
+    TEST_ASSERT( mbedtls_ctr_drbg_seed( &ctr_drbg, mbedtls_entropy_func,
+                                        &entropy, (const unsigned char *) pers,
+                                        strlen( pers ) ) == 0 );
 
     TEST_ASSERT( mbedtls_rsa_gen_key( &ctx, mbedtls_ctr_drbg_random, &ctr_drbg, nrbits, exponent ) == result );
     if( result == 0 )
@@ -1214,630 +1213,1356 @@ exit:
     mbedtls_ctr_drbg_free( &ctr_drbg );
     mbedtls_entropy_free( &entropy );
 }
-#endif /* MBEDTLS_CTR_DRBG_C */
-#endif /* MBEDTLS_ENTROPY_C */
 
-#ifdef MBEDTLS_SELF_TEST
-void test_suite_rsa_selftest()
+void test_mbedtls_rsa_gen_key_wrapper( void ** params )
 {
-    TEST_ASSERT( mbedtls_rsa_self_test( 1 ) == 0 );
+
+    test_mbedtls_rsa_gen_key( *( (int *) params[0] ), *( (int *) params[1] ), *( (int *) params[2] ) );
+}
+#endif /* ENTROPY_HAVE_STRONG */
+#endif /* MBEDTLS_ENTROPY_C */
+#endif /* MBEDTLS_CTR_DRBG_C */
+#if defined(MBEDTLS_CTR_DRBG_C)
+#if defined(MBEDTLS_ENTROPY_C)
+
+void test_mbedtls_rsa_deduce_primes( int radix_N, char *input_N,
+                                int radix_D, char *input_D,
+                                int radix_E, char *input_E,
+                                int radix_P, char *output_P,
+                                int radix_Q, char *output_Q,
+                                int corrupt, int result )
+{
+    mbedtls_mpi N, P, Pp, Q, Qp, D, E;
+
+    mbedtls_mpi_init( &N );
+    mbedtls_mpi_init( &P );  mbedtls_mpi_init( &Q  );
+    mbedtls_mpi_init( &Pp ); mbedtls_mpi_init( &Qp );
+    mbedtls_mpi_init( &D ); mbedtls_mpi_init( &E );
+
+    TEST_ASSERT( mbedtls_mpi_read_string( &N, radix_N, input_N ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &D, radix_D, input_D ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &Qp, radix_P, output_P ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &Pp, radix_Q, output_Q ) == 0 );
+
+    if( corrupt )
+        TEST_ASSERT( mbedtls_mpi_add_int( &D, &D, 2 ) == 0 );
+
+    /* Try to deduce P, Q from N, D, E only. */
+    TEST_ASSERT( mbedtls_rsa_deduce_primes( &N, &D, &E, &P, &Q ) == result );
+
+    if( !corrupt )
+    {
+        /* Check if (P,Q) = (Pp, Qp) or (P,Q) = (Qp, Pp) */
+        TEST_ASSERT( ( mbedtls_mpi_cmp_mpi( &P, &Pp ) == 0 && mbedtls_mpi_cmp_mpi( &Q, &Qp ) == 0 ) ||
+                     ( mbedtls_mpi_cmp_mpi( &P, &Qp ) == 0 && mbedtls_mpi_cmp_mpi( &Q, &Pp ) == 0 ) );
+    }
 
 exit:
-    return;
+    mbedtls_mpi_free( &N );
+    mbedtls_mpi_free( &P  ); mbedtls_mpi_free( &Q  );
+    mbedtls_mpi_free( &Pp ); mbedtls_mpi_free( &Qp );
+    mbedtls_mpi_free( &D ); mbedtls_mpi_free( &E );
+}
+
+void test_mbedtls_rsa_deduce_primes_wrapper( void ** params )
+{
+
+    test_mbedtls_rsa_deduce_primes( *( (int *) params[0] ), (char *) params[1], *( (int *) params[2] ), (char *) params[3], *( (int *) params[4] ), (char *) params[5], *( (int *) params[6] ), (char *) params[7], *( (int *) params[8] ), (char *) params[9], *( (int *) params[10] ), *( (int *) params[11] ) );
+}
+#endif /* MBEDTLS_ENTROPY_C */
+#endif /* MBEDTLS_CTR_DRBG_C */
+
+void test_mbedtls_rsa_deduce_private_exponent( int radix_P, char *input_P,
+                                          int radix_Q, char *input_Q,
+                                          int radix_E, char *input_E,
+                                          int radix_D, char *output_D,
+                                          int corrupt, int result )
+{
+    mbedtls_mpi P, Q, D, Dp, E, R, Rp;
+
+    mbedtls_mpi_init( &P ); mbedtls_mpi_init( &Q );
+    mbedtls_mpi_init( &D ); mbedtls_mpi_init( &Dp );
+    mbedtls_mpi_init( &E );
+    mbedtls_mpi_init( &R ); mbedtls_mpi_init( &Rp );
+
+    TEST_ASSERT( mbedtls_mpi_read_string( &P, radix_P, input_P ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &Q, radix_Q, input_Q ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_read_string( &Dp, radix_D, output_D ) == 0 );
+
+    if( corrupt )
+    {
+        /* Make E even */
+        TEST_ASSERT( mbedtls_mpi_set_bit( &E, 0, 0 ) == 0 );
+    }
+
+    /* Try to deduce D from N, P, Q, E. */
+    TEST_ASSERT( mbedtls_rsa_deduce_private_exponent( &P, &Q,
+                                                      &E, &D ) == result );
+
+    if( !corrupt )
+    {
+        /*
+         * Check that D and Dp agree modulo LCM(P-1, Q-1).
+         */
+
+        /* Replace P,Q by P-1, Q-1 */
+        TEST_ASSERT( mbedtls_mpi_sub_int( &P, &P, 1 ) == 0 );
+        TEST_ASSERT( mbedtls_mpi_sub_int( &Q, &Q, 1 ) == 0 );
+
+        /* Check D == Dp modulo P-1 */
+        TEST_ASSERT( mbedtls_mpi_mod_mpi( &R,  &D,  &P ) == 0 );
+        TEST_ASSERT( mbedtls_mpi_mod_mpi( &Rp, &Dp, &P ) == 0 );
+        TEST_ASSERT( mbedtls_mpi_cmp_mpi( &R,  &Rp )     == 0 );
+
+        /* Check D == Dp modulo Q-1 */
+        TEST_ASSERT( mbedtls_mpi_mod_mpi( &R,  &D,  &Q ) == 0 );
+        TEST_ASSERT( mbedtls_mpi_mod_mpi( &Rp, &Dp, &Q ) == 0 );
+        TEST_ASSERT( mbedtls_mpi_cmp_mpi( &R,  &Rp )     == 0 );
+    }
+
+exit:
+
+    mbedtls_mpi_free( &P ); mbedtls_mpi_free( &Q  );
+    mbedtls_mpi_free( &D ); mbedtls_mpi_free( &Dp );
+    mbedtls_mpi_free( &E );
+    mbedtls_mpi_free( &R ); mbedtls_mpi_free( &Rp );
+}
+
+void test_mbedtls_rsa_deduce_private_exponent_wrapper( void ** params )
+{
+
+    test_mbedtls_rsa_deduce_private_exponent( *( (int *) params[0] ), (char *) params[1], *( (int *) params[2] ), (char *) params[3], *( (int *) params[4] ), (char *) params[5], *( (int *) params[6] ), (char *) params[7], *( (int *) params[8] ), *( (int *) params[9] ) );
+}
+#if defined(MBEDTLS_CTR_DRBG_C)
+#if defined(MBEDTLS_ENTROPY_C)
+#if defined(ENTROPY_HAVE_STRONG)
+
+void test_mbedtls_rsa_import( int radix_N, char *input_N,
+                         int radix_P, char *input_P,
+                         int radix_Q, char *input_Q,
+                         int radix_D, char *input_D,
+                         int radix_E, char *input_E,
+                         int successive,
+                         int is_priv,
+                         int res_check,
+                         int res_complete )
+{
+    mbedtls_mpi N, P, Q, D, E;
+    mbedtls_rsa_context ctx;
+
+    /* Buffers used for encryption-decryption test */
+    unsigned char *buf_orig = NULL;
+    unsigned char *buf_enc  = NULL;
+    unsigned char *buf_dec  = NULL;
+
+    mbedtls_entropy_context entropy;
+    mbedtls_ctr_drbg_context ctr_drbg;
+    const char *pers = "test_suite_rsa";
+
+    const int have_N = ( strlen( input_N ) > 0 );
+    const int have_P = ( strlen( input_P ) > 0 );
+    const int have_Q = ( strlen( input_Q ) > 0 );
+    const int have_D = ( strlen( input_D ) > 0 );
+    const int have_E = ( strlen( input_E ) > 0 );
+
+    mbedtls_ctr_drbg_init( &ctr_drbg );
+    mbedtls_entropy_init( &entropy );
+    mbedtls_rsa_init( &ctx, 0, 0 );
+
+    mbedtls_mpi_init( &N );
+    mbedtls_mpi_init( &P ); mbedtls_mpi_init( &Q );
+    mbedtls_mpi_init( &D ); mbedtls_mpi_init( &E );
+
+    TEST_ASSERT( mbedtls_ctr_drbg_seed( &ctr_drbg, mbedtls_entropy_func, &entropy,
+                                (const unsigned char *) pers, strlen( pers ) ) == 0 );
+
+    if( have_N )
+        TEST_ASSERT( mbedtls_mpi_read_string( &N, radix_N, input_N ) == 0 );
+
+    if( have_P )
+        TEST_ASSERT( mbedtls_mpi_read_string( &P, radix_P, input_P ) == 0 );
+
+    if( have_Q )
+        TEST_ASSERT( mbedtls_mpi_read_string( &Q, radix_Q, input_Q ) == 0 );
+
+    if( have_D )
+        TEST_ASSERT( mbedtls_mpi_read_string( &D, radix_D, input_D ) == 0 );
+
+    if( have_E )
+        TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
+
+    if( !successive )
+    {
+        TEST_ASSERT( mbedtls_rsa_import( &ctx,
+                             have_N ? &N : NULL,
+                             have_P ? &P : NULL,
+                             have_Q ? &Q : NULL,
+                             have_D ? &D : NULL,
+                             have_E ? &E : NULL ) == 0 );
+    }
+    else
+    {
+        /* Import N, P, Q, D, E separately.
+         * This should make no functional difference. */
+
+        TEST_ASSERT( mbedtls_rsa_import( &ctx,
+                               have_N ? &N : NULL,
+                               NULL, NULL, NULL, NULL ) == 0 );
+
+        TEST_ASSERT( mbedtls_rsa_import( &ctx,
+                               NULL,
+                               have_P ? &P : NULL,
+                               NULL, NULL, NULL ) == 0 );
+
+        TEST_ASSERT( mbedtls_rsa_import( &ctx,
+                               NULL, NULL,
+                               have_Q ? &Q : NULL,
+                               NULL, NULL ) == 0 );
+
+        TEST_ASSERT( mbedtls_rsa_import( &ctx,
+                               NULL, NULL, NULL,
+                               have_D ? &D : NULL,
+                               NULL ) == 0 );
+
+        TEST_ASSERT( mbedtls_rsa_import( &ctx,
+                               NULL, NULL, NULL, NULL,
+                               have_E ? &E : NULL ) == 0 );
+    }
+
+    TEST_ASSERT( mbedtls_rsa_complete( &ctx ) == res_complete );
+
+    /* On expected success, perform some public and private
+     * key operations to check if the key is working properly. */
+    if( res_complete == 0 )
+    {
+        if( is_priv )
+            TEST_ASSERT( mbedtls_rsa_check_privkey( &ctx ) == res_check );
+        else
+            TEST_ASSERT( mbedtls_rsa_check_pubkey( &ctx ) == res_check );
+
+        if( res_check != 0 )
+            goto exit;
+
+        buf_orig = mbedtls_calloc( 1, mbedtls_rsa_get_len( &ctx ) );
+        buf_enc  = mbedtls_calloc( 1, mbedtls_rsa_get_len( &ctx ) );
+        buf_dec  = mbedtls_calloc( 1, mbedtls_rsa_get_len( &ctx ) );
+        if( buf_orig == NULL || buf_enc == NULL || buf_dec == NULL )
+            goto exit;
+
+        TEST_ASSERT( mbedtls_ctr_drbg_random( &ctr_drbg,
+                              buf_orig, mbedtls_rsa_get_len( &ctx ) ) == 0 );
+
+        /* Make sure the number we're generating is smaller than the modulus */
+        buf_orig[0] = 0x00;
+
+        TEST_ASSERT( mbedtls_rsa_public( &ctx, buf_orig, buf_enc ) == 0 );
+
+        if( is_priv )
+        {
+            TEST_ASSERT( mbedtls_rsa_private( &ctx, mbedtls_ctr_drbg_random,
+                                              &ctr_drbg, buf_enc,
+                                              buf_dec ) == 0 );
+
+            TEST_ASSERT( memcmp( buf_orig, buf_dec,
+                                 mbedtls_rsa_get_len( &ctx ) ) == 0 );
+        }
+    }
+
+exit:
+
+    mbedtls_free( buf_orig );
+    mbedtls_free( buf_enc  );
+    mbedtls_free( buf_dec  );
+
+    mbedtls_rsa_free( &ctx );
+
+    mbedtls_ctr_drbg_free( &ctr_drbg );
+    mbedtls_entropy_free( &entropy );
+
+    mbedtls_mpi_free( &N );
+    mbedtls_mpi_free( &P ); mbedtls_mpi_free( &Q );
+    mbedtls_mpi_free( &D ); mbedtls_mpi_free( &E );
+}
+
+void test_mbedtls_rsa_import_wrapper( void ** params )
+{
+
+    test_mbedtls_rsa_import( *( (int *) params[0] ), (char *) params[1], *( (int *) params[2] ), (char *) params[3], *( (int *) params[4] ), (char *) params[5], *( (int *) params[6] ), (char *) params[7], *( (int *) params[8] ), (char *) params[9], *( (int *) params[10] ), *( (int *) params[11] ), *( (int *) params[12] ), *( (int *) params[13] ) );
+}
+#endif /* ENTROPY_HAVE_STRONG */
+#endif /* MBEDTLS_ENTROPY_C */
+#endif /* MBEDTLS_CTR_DRBG_C */
+
+void test_mbedtls_rsa_export( int radix_N, char *input_N,
+                         int radix_P, char *input_P,
+                         int radix_Q, char *input_Q,
+                         int radix_D, char *input_D,
+                         int radix_E, char *input_E,
+                         int is_priv,
+                         int successive )
+{
+    /* Original MPI's with which we set up the RSA context */
+    mbedtls_mpi N, P, Q, D, E;
+
+    /* Exported MPI's */
+    mbedtls_mpi Ne, Pe, Qe, De, Ee;
+
+    const int have_N = ( strlen( input_N ) > 0 );
+    const int have_P = ( strlen( input_P ) > 0 );
+    const int have_Q = ( strlen( input_Q ) > 0 );
+    const int have_D = ( strlen( input_D ) > 0 );
+    const int have_E = ( strlen( input_E ) > 0 );
+
+    mbedtls_rsa_context ctx;
+
+    mbedtls_rsa_init( &ctx, 0, 0 );
+
+    mbedtls_mpi_init( &N );
+    mbedtls_mpi_init( &P ); mbedtls_mpi_init( &Q );
+    mbedtls_mpi_init( &D ); mbedtls_mpi_init( &E );
+
+    mbedtls_mpi_init( &Ne );
+    mbedtls_mpi_init( &Pe ); mbedtls_mpi_init( &Qe );
+    mbedtls_mpi_init( &De ); mbedtls_mpi_init( &Ee );
+
+    /* Setup RSA context */
+
+    if( have_N )
+        TEST_ASSERT( mbedtls_mpi_read_string( &N, radix_N, input_N ) == 0 );
+
+    if( have_P )
+        TEST_ASSERT( mbedtls_mpi_read_string( &P, radix_P, input_P ) == 0 );
+
+    if( have_Q )
+        TEST_ASSERT( mbedtls_mpi_read_string( &Q, radix_Q, input_Q ) == 0 );
+
+    if( have_D )
+        TEST_ASSERT( mbedtls_mpi_read_string( &D, radix_D, input_D ) == 0 );
+
+    if( have_E )
+        TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
+
+    TEST_ASSERT( mbedtls_rsa_import( &ctx,
+                                     strlen( input_N ) ? &N : NULL,
+                                     strlen( input_P ) ? &P : NULL,
+                                     strlen( input_Q ) ? &Q : NULL,
+                                     strlen( input_D ) ? &D : NULL,
+                                     strlen( input_E ) ? &E : NULL ) == 0 );
+
+    TEST_ASSERT( mbedtls_rsa_complete( &ctx ) == 0 );
+
+    /*
+     * Export parameters and compare to original ones.
+     */
+
+    /* N and E must always be present. */
+    if( !successive )
+    {
+        TEST_ASSERT( mbedtls_rsa_export( &ctx, &Ne, NULL, NULL, NULL, &Ee ) == 0 );
+    }
+    else
+    {
+        TEST_ASSERT( mbedtls_rsa_export( &ctx, &Ne, NULL, NULL, NULL, NULL ) == 0 );
+        TEST_ASSERT( mbedtls_rsa_export( &ctx, NULL, NULL, NULL, NULL, &Ee ) == 0 );
+    }
+    TEST_ASSERT( mbedtls_mpi_cmp_mpi( &N, &Ne ) == 0 );
+    TEST_ASSERT( mbedtls_mpi_cmp_mpi( &E, &Ee ) == 0 );
+
+    /* If we were providing enough information to setup a complete private context,
+     * we expect to be able to export all core parameters. */
+
+    if( is_priv )
+    {
+        if( !successive )
+        {
+            TEST_ASSERT( mbedtls_rsa_export( &ctx, NULL, &Pe, &Qe,
+                                             &De, NULL ) == 0 );
+        }
+        else
+        {
+            TEST_ASSERT( mbedtls_rsa_export( &ctx, NULL, &Pe, NULL,
+                                             NULL, NULL ) == 0 );
+            TEST_ASSERT( mbedtls_rsa_export( &ctx, NULL, NULL, &Qe,
+                                             NULL, NULL ) == 0 );
+            TEST_ASSERT( mbedtls_rsa_export( &ctx, NULL, NULL, NULL,
+                                             &De, NULL ) == 0 );
+        }
+
+        if( have_P )
+            TEST_ASSERT( mbedtls_mpi_cmp_mpi( &P, &Pe ) == 0 );
+
+        if( have_Q )
+            TEST_ASSERT( mbedtls_mpi_cmp_mpi( &Q, &Qe ) == 0 );
+
+        if( have_D )
+            TEST_ASSERT( mbedtls_mpi_cmp_mpi( &D, &De ) == 0 );
+
+        /* While at it, perform a sanity check */
+        TEST_ASSERT( mbedtls_rsa_validate_params( &Ne, &Pe, &Qe, &De, &Ee,
+                                                       NULL, NULL ) == 0 );
+    }
+
+exit:
+
+    mbedtls_rsa_free( &ctx );
+
+    mbedtls_mpi_free( &N );
+    mbedtls_mpi_free( &P ); mbedtls_mpi_free( &Q );
+    mbedtls_mpi_free( &D ); mbedtls_mpi_free( &E );
+
+    mbedtls_mpi_free( &Ne );
+    mbedtls_mpi_free( &Pe ); mbedtls_mpi_free( &Qe );
+    mbedtls_mpi_free( &De ); mbedtls_mpi_free( &Ee );
+}
+
+void test_mbedtls_rsa_export_wrapper( void ** params )
+{
+
+    test_mbedtls_rsa_export( *( (int *) params[0] ), (char *) params[1], *( (int *) params[2] ), (char *) params[3], *( (int *) params[4] ), (char *) params[5], *( (int *) params[6] ), (char *) params[7], *( (int *) params[8] ), (char *) params[9], *( (int *) params[10] ), *( (int *) params[11] ) );
+}
+#if defined(MBEDTLS_ENTROPY_C)
+#if defined(ENTROPY_HAVE_STRONG)
+
+void test_mbedtls_rsa_validate_params( int radix_N, char *input_N,
+                                  int radix_P, char *input_P,
+                                  int radix_Q, char *input_Q,
+                                  int radix_D, char *input_D,
+                                  int radix_E, char *input_E,
+                                  int prng, int result )
+{
+    /* Original MPI's with which we set up the RSA context */
+    mbedtls_mpi N, P, Q, D, E;
+
+    const int have_N = ( strlen( input_N ) > 0 );
+    const int have_P = ( strlen( input_P ) > 0 );
+    const int have_Q = ( strlen( input_Q ) > 0 );
+    const int have_D = ( strlen( input_D ) > 0 );
+    const int have_E = ( strlen( input_E ) > 0 );
+
+    mbedtls_entropy_context entropy;
+    mbedtls_ctr_drbg_context ctr_drbg;
+    const char *pers = "test_suite_rsa";
+
+    mbedtls_mpi_init( &N );
+    mbedtls_mpi_init( &P ); mbedtls_mpi_init( &Q );
+    mbedtls_mpi_init( &D ); mbedtls_mpi_init( &E );
+
+    mbedtls_ctr_drbg_init( &ctr_drbg );
+    mbedtls_entropy_init( &entropy );
+    TEST_ASSERT( mbedtls_ctr_drbg_seed( &ctr_drbg, mbedtls_entropy_func,
+                                        &entropy, (const unsigned char *) pers,
+                                        strlen( pers ) ) == 0 );
+
+    if( have_N )
+        TEST_ASSERT( mbedtls_mpi_read_string( &N, radix_N, input_N ) == 0 );
+
+    if( have_P )
+        TEST_ASSERT( mbedtls_mpi_read_string( &P, radix_P, input_P ) == 0 );
+
+    if( have_Q )
+        TEST_ASSERT( mbedtls_mpi_read_string( &Q, radix_Q, input_Q ) == 0 );
+
+    if( have_D )
+        TEST_ASSERT( mbedtls_mpi_read_string( &D, radix_D, input_D ) == 0 );
+
+    if( have_E )
+        TEST_ASSERT( mbedtls_mpi_read_string( &E, radix_E, input_E ) == 0 );
+
+    TEST_ASSERT( mbedtls_rsa_validate_params( have_N ? &N : NULL,
+                                        have_P ? &P : NULL,
+                                        have_Q ? &Q : NULL,
+                                        have_D ? &D : NULL,
+                                        have_E ? &E : NULL,
+                                        prng ? mbedtls_ctr_drbg_random : NULL,
+                                        prng ? &ctr_drbg : NULL ) == result );
+exit:
+
+    mbedtls_ctr_drbg_free( &ctr_drbg );
+    mbedtls_entropy_free( &entropy );
+
+    mbedtls_mpi_free( &N );
+    mbedtls_mpi_free( &P ); mbedtls_mpi_free( &Q );
+    mbedtls_mpi_free( &D ); mbedtls_mpi_free( &E );
+}
+
+void test_mbedtls_rsa_validate_params_wrapper( void ** params )
+{
+
+    test_mbedtls_rsa_validate_params( *( (int *) params[0] ), (char *) params[1], *( (int *) params[2] ), (char *) params[3], *( (int *) params[4] ), (char *) params[5], *( (int *) params[6] ), (char *) params[7], *( (int *) params[8] ), (char *) params[9], *( (int *) params[10] ), *( (int *) params[11] ) );
+}
+#endif /* ENTROPY_HAVE_STRONG */
+#endif /* MBEDTLS_ENTROPY_C */
+#if defined(MBEDTLS_CTR_DRBG_C)
+#if defined(MBEDTLS_ENTROPY_C)
+
+void test_mbedtls_rsa_export_raw( data_t *input_N, data_t *input_P,
+                             data_t *input_Q, data_t *input_D,
+                             data_t *input_E, int is_priv,
+                             int successive )
+{
+    /* Exported buffers */
+    unsigned char bufNe[1000];
+    unsigned char bufPe[1000];
+    unsigned char bufQe[1000];
+    unsigned char bufDe[1000];
+    unsigned char bufEe[1000];
+
+    mbedtls_rsa_context ctx;
+
+    mbedtls_rsa_init( &ctx, 0, 0 );
+
+    /* Setup RSA context */
+    TEST_ASSERT( mbedtls_rsa_import_raw( &ctx,
+                               input_N->len ? input_N->x : NULL, input_N->len,
+                               input_P->len ? input_P->x : NULL, input_P->len,
+                               input_Q->len ? input_Q->x : NULL, input_Q->len,
+                               input_D->len ? input_D->x : NULL, input_D->len,
+                               input_E->len ? input_E->x : NULL, input_E->len ) == 0 );
+
+    TEST_ASSERT( mbedtls_rsa_complete( &ctx ) == 0 );
+
+    /*
+     * Export parameters and compare to original ones.
+     */
+
+    /* N and E must always be present. */
+    if( !successive )
+    {
+        TEST_ASSERT( mbedtls_rsa_export_raw( &ctx, bufNe, input_N->len,
+                                             NULL, 0, NULL, 0, NULL, 0,
+                                             bufEe, input_E->len ) == 0 );
+    }
+    else
+    {
+        TEST_ASSERT( mbedtls_rsa_export_raw( &ctx, bufNe, input_N->len,
+                                             NULL, 0, NULL, 0, NULL, 0,
+                                             NULL, 0 ) == 0 );
+        TEST_ASSERT( mbedtls_rsa_export_raw( &ctx, NULL, 0,
+                                             NULL, 0, NULL, 0, NULL, 0,
+                                             bufEe, input_E->len ) == 0 );
+    }
+    TEST_ASSERT( memcmp( input_N->x, bufNe, input_N->len ) == 0 );
+    TEST_ASSERT( memcmp( input_E->x, bufEe, input_E->len ) == 0 );
+
+    /* If we were providing enough information to setup a complete private context,
+     * we expect to be able to export all core parameters. */
+
+    if( is_priv )
+    {
+        if( !successive )
+        {
+            TEST_ASSERT( mbedtls_rsa_export_raw( &ctx, NULL, 0,
+                                         bufPe, input_P->len ? input_P->len : sizeof( bufPe ),
+                                         bufQe, input_Q->len ? input_Q->len : sizeof( bufQe ),
+                                         bufDe, input_D->len ? input_D->len : sizeof( bufDe ),
+                                         NULL, 0 ) == 0 );
+        }
+        else
+        {
+            TEST_ASSERT( mbedtls_rsa_export_raw( &ctx, NULL, 0,
+                                         bufPe, input_P->len ? input_P->len : sizeof( bufPe ),
+                                         NULL, 0, NULL, 0,
+                                         NULL, 0 ) == 0 );
+
+            TEST_ASSERT( mbedtls_rsa_export_raw( &ctx, NULL, 0, NULL, 0,
+                                         bufQe, input_Q->len ? input_Q->len : sizeof( bufQe ),
+                                         NULL, 0, NULL, 0 ) == 0 );
+
+            TEST_ASSERT( mbedtls_rsa_export_raw( &ctx, NULL, 0, NULL, 0, NULL, 0,
+                                         bufDe, input_D->len ? input_D->len : sizeof( bufDe ),
+                                         NULL, 0 ) == 0 );
+        }
+
+        if( input_P->len )
+            TEST_ASSERT( memcmp( input_P->x, bufPe, input_P->len ) == 0 );
+
+        if( input_Q->len )
+            TEST_ASSERT( memcmp( input_Q->x, bufQe, input_Q->len ) == 0 );
+
+        if( input_D->len )
+            TEST_ASSERT( memcmp( input_D->x, bufDe, input_D->len ) == 0 );
+
+    }
+
+exit:
+    mbedtls_rsa_free( &ctx );
+}
+
+void test_mbedtls_rsa_export_raw_wrapper( void ** params )
+{
+    data_t data0;
+    data_t data2;
+    data_t data4;
+    data_t data6;
+    data_t data8;
+
+    data0.x = (uint8_t *) params[0];
+    data0.len =  *( (uint32_t *) params[1] );
+    data2.x = (uint8_t *) params[2];
+    data2.len = *( (uint32_t *) params[3] );
+    data4.x = (uint8_t *) params[4];
+    data4.len =  *( (uint32_t *) params[5] );
+    data6.x = (uint8_t *) params[6];
+    data6.len = *( (uint32_t *) params[7] );
+    data8.x = (uint8_t *) params[8];
+    data8.len =  *( (uint32_t *) params[9] );
+
+
+
+    test_mbedtls_rsa_export_raw( &data0, &data2, &data4, &data6, &data8, *( (int *) params[10] ), *( (int *) params[11] ) );
+}
+#endif /* MBEDTLS_ENTROPY_C */
+#endif /* MBEDTLS_CTR_DRBG_C */
+#if defined(MBEDTLS_CTR_DRBG_C)
+#if defined(MBEDTLS_ENTROPY_C)
+#if defined(ENTROPY_HAVE_STRONG)
+
+void test_mbedtls_rsa_import_raw( data_t *input_N,
+                             data_t *input_P, data_t *input_Q,
+                             data_t *input_D, data_t *input_E,
+                             int successive,
+                             int is_priv,
+                             int res_check,
+                             int res_complete )
+{
+    /* Buffers used for encryption-decryption test */
+    unsigned char *buf_orig = NULL;
+    unsigned char *buf_enc  = NULL;
+    unsigned char *buf_dec  = NULL;
+
+    mbedtls_rsa_context ctx;
+    mbedtls_entropy_context entropy;
+    mbedtls_ctr_drbg_context ctr_drbg;
+
+    const char *pers = "test_suite_rsa";
+
+    mbedtls_ctr_drbg_init( &ctr_drbg );
+    mbedtls_entropy_init( &entropy );
+    mbedtls_rsa_init( &ctx, 0, 0 );
+
+    TEST_ASSERT( mbedtls_ctr_drbg_seed( &ctr_drbg, mbedtls_entropy_func,
+                                        &entropy, (const unsigned char *) pers,
+                                        strlen( pers ) ) == 0 );
+
+    if( !successive )
+    {
+        TEST_ASSERT( mbedtls_rsa_import_raw( &ctx,
+                               ( input_N->len > 0 ) ? input_N->x : NULL, input_N->len,
+                               ( input_P->len > 0 ) ? input_P->x : NULL, input_P->len,
+                               ( input_Q->len > 0 ) ? input_Q->x : NULL, input_Q->len,
+                               ( input_D->len > 0 ) ? input_D->x : NULL, input_D->len,
+                               ( input_E->len > 0 ) ? input_E->x : NULL, input_E->len ) == 0 );
+    }
+    else
+    {
+        /* Import N, P, Q, D, E separately.
+         * This should make no functional difference. */
+
+        TEST_ASSERT( mbedtls_rsa_import_raw( &ctx,
+                               ( input_N->len > 0 ) ? input_N->x : NULL, input_N->len,
+                               NULL, 0, NULL, 0, NULL, 0, NULL, 0 ) == 0 );
+
+        TEST_ASSERT( mbedtls_rsa_import_raw( &ctx,
+                               NULL, 0,
+                               ( input_P->len > 0 ) ? input_P->x : NULL, input_P->len,
+                               NULL, 0, NULL, 0, NULL, 0 ) == 0 );
+
+        TEST_ASSERT( mbedtls_rsa_import_raw( &ctx,
+                               NULL, 0, NULL, 0,
+                               ( input_Q->len > 0 ) ? input_Q->x : NULL, input_Q->len,
+                               NULL, 0, NULL, 0 ) == 0 );
+
+        TEST_ASSERT( mbedtls_rsa_import_raw( &ctx,
+                               NULL, 0, NULL, 0, NULL, 0,
+                               ( input_D->len > 0 ) ? input_D->x : NULL, input_D->len,
+                               NULL, 0 ) == 0 );
+
+        TEST_ASSERT( mbedtls_rsa_import_raw( &ctx,
+                               NULL, 0, NULL, 0, NULL, 0, NULL, 0,
+                               ( input_E->len > 0 ) ? input_E->x : NULL, input_E->len ) == 0 );
+    }
+
+    TEST_ASSERT( mbedtls_rsa_complete( &ctx ) == res_complete );
+
+    /* On expected success, perform some public and private
+     * key operations to check if the key is working properly. */
+    if( res_complete == 0 )
+    {
+        if( is_priv )
+            TEST_ASSERT( mbedtls_rsa_check_privkey( &ctx ) == res_check );
+        else
+            TEST_ASSERT( mbedtls_rsa_check_pubkey( &ctx ) == res_check );
+
+        if( res_check != 0 )
+            goto exit;
+
+        buf_orig = mbedtls_calloc( 1, mbedtls_rsa_get_len( &ctx ) );
+        buf_enc  = mbedtls_calloc( 1, mbedtls_rsa_get_len( &ctx ) );
+        buf_dec  = mbedtls_calloc( 1, mbedtls_rsa_get_len( &ctx ) );
+        if( buf_orig == NULL || buf_enc == NULL || buf_dec == NULL )
+            goto exit;
+
+        TEST_ASSERT( mbedtls_ctr_drbg_random( &ctr_drbg,
+                              buf_orig, mbedtls_rsa_get_len( &ctx ) ) == 0 );
+
+        /* Make sure the number we're generating is smaller than the modulus */
+        buf_orig[0] = 0x00;
+
+        TEST_ASSERT( mbedtls_rsa_public( &ctx, buf_orig, buf_enc ) == 0 );
+
+        if( is_priv )
+        {
+            TEST_ASSERT( mbedtls_rsa_private( &ctx, mbedtls_ctr_drbg_random,
+                                              &ctr_drbg, buf_enc,
+                                              buf_dec ) == 0 );
+
+            TEST_ASSERT( memcmp( buf_orig, buf_dec,
+                                 mbedtls_rsa_get_len( &ctx ) ) == 0 );
+        }
+    }
+
+exit:
+
+    mbedtls_free( buf_orig );
+    mbedtls_free( buf_enc  );
+    mbedtls_free( buf_dec  );
+
+    mbedtls_rsa_free( &ctx );
+
+    mbedtls_ctr_drbg_free( &ctr_drbg );
+    mbedtls_entropy_free( &entropy );
+
+}
+
+void test_mbedtls_rsa_import_raw_wrapper( void ** params )
+{
+    data_t data0;
+    data_t data2;
+    data_t data4;
+    data_t data6;
+    data_t data8;
+
+    data0.x = (uint8_t *) params[0];
+    data0.len =  *( (uint32_t *) params[1] );
+    data2.x = (uint8_t *) params[2];
+    data2.len = *( (uint32_t *) params[3] );
+    data4.x = (uint8_t *) params[4];
+    data4.len =  *( (uint32_t *) params[5] );
+    data6.x = (uint8_t *) params[6];
+    data6.len = *( (uint32_t *) params[7] );
+    data8.x = (uint8_t *) params[8];
+    data8.len =  *( (uint32_t *) params[9] );
+
+    test_mbedtls_rsa_import_raw( &data0, &data2, &data4, &data6, &data8, *( (int *) params[10] ), *( (int *) params[11] ), *( (int *) params[12] ), *( (int *) params[13] ) );
+}
+#endif /* ENTROPY_HAVE_STRONG */
+#endif /* MBEDTLS_ENTROPY_C */
+#endif /* MBEDTLS_CTR_DRBG_C */
+#if defined(MBEDTLS_SELF_TEST)
+
+void test_rsa_selftest(  )
+{
+    TEST_ASSERT( mbedtls_rsa_self_test( 1 ) == 0 );
+exit:
+    ;
+}
+
+void test_rsa_selftest_wrapper( void ** params )
+{
+    (void)params;
+
+    test_rsa_selftest(  );
 }
 #endif /* MBEDTLS_SELF_TEST */
-
-
-#endif /* defined(MBEDTLS_RSA_C) */
-#endif /* defined(MBEDTLS_BIGNUM_C) */
-#endif /* defined(MBEDTLS_GENPRIME) */
+#endif /* MBEDTLS_GENPRIME */
+#endif /* MBEDTLS_BIGNUM_C */
+#endif /* MBEDTLS_RSA_C */
 
 
 /*----------------------------------------------------------------------------*/
 /* Test dispatch code */
 
-int dep_check( char *str )
+
+/**
+ * \brief       Evaluates an expression/macro into its literal integer value.
+ *              For optimizing space for embedded targets each expression/macro
+ *              is identified by a unique identifier instead of string literals.
+ *              Identifiers and evaluation code is generated by script:
+ *              generate_test_code.py
+ *
+ * \param exp_id    Expression identifier.
+ * \param out_value Pointer to int to hold the integer.
+ *
+ * \return       0 if exp_id is found. 1 otherwise.
+ */
+int get_expression( int32_t exp_id, int32_t * out_value )
 {
-    if( str == NULL )
-        return( 1 );
+    int ret = KEY_VALUE_MAPPING_FOUND;
 
-    if( strcmp( str, "MBEDTLS_MD5_C" ) == 0 )
+    (void) exp_id;
+    (void) out_value;
+
+    switch( exp_id )
     {
-#if defined(MBEDTLS_MD5_C)
-        return( DEPENDENCY_SUPPORTED );
-#else
-        return( DEPENDENCY_NOT_SUPPORTED );
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+
+        case 0:
+            {
+                *out_value = MBEDTLS_RSA_PKCS_V15;
+            }
+            break;
+        case 1:
+            {
+                *out_value = MBEDTLS_MD_SHA1;
+            }
+            break;
+        case 2:
+            {
+                *out_value = MBEDTLS_ERR_RSA_VERIFY_FAILED;
+            }
+            break;
+        case 3:
+            {
+                *out_value = MBEDTLS_MD_SHA224;
+            }
+            break;
+        case 4:
+            {
+                *out_value = MBEDTLS_MD_SHA256;
+            }
+            break;
+        case 5:
+            {
+                *out_value = MBEDTLS_MD_SHA384;
+            }
+            break;
+        case 6:
+            {
+                *out_value = MBEDTLS_MD_SHA512;
+            }
+            break;
+        case 7:
+            {
+                *out_value = MBEDTLS_MD_MD2;
+            }
+            break;
+        case 8:
+            {
+                *out_value = MBEDTLS_MD_MD4;
+            }
+            break;
+        case 9:
+            {
+                *out_value = MBEDTLS_MD_MD5;
+            }
+            break;
+        case 10:
+            {
+                *out_value = MBEDTLS_ERR_RSA_BAD_INPUT_DATA;
+            }
+            break;
+        case 11:
+            {
+                *out_value = MBEDTLS_ERR_RSA_INVALID_PADDING;
+            }
+            break;
+        case 12:
+            {
+                *out_value = MBEDTLS_ERR_RSA_PRIVATE_FAILED + MBEDTLS_ERR_MPI_BAD_INPUT_DATA;
+            }
+            break;
+        case 13:
+            {
+                *out_value = MBEDTLS_ERR_RSA_OUTPUT_TOO_LARGE;
+            }
+            break;
+        case 14:
+            {
+                *out_value = MBEDTLS_ERR_RSA_KEY_CHECK_FAILED;
+            }
+            break;
+        case 15:
+            {
+                *out_value = MBEDTLS_ERR_RSA_PUBLIC_FAILED + MBEDTLS_ERR_MPI_BAD_INPUT_DATA;
+            }
+            break;
+        case 16:
+            {
+                *out_value = MBEDTLS_ERR_MPI_NOT_ACCEPTABLE;
+            }
+            break;
+        case 17:
+            {
+                *out_value = MBEDTLS_ERR_MPI_BAD_INPUT_DATA;
+            }
+            break;
+        case 18:
+            {
+                *out_value = MBEDTLS_ERR_RSA_RNG_FAILED;
+            }
+            break;
 #endif
-    }
-    if( strcmp( str, "MBEDTLS_PKCS1_V15" ) == 0 )
-    {
-#if defined(MBEDTLS_PKCS1_V15)
-        return( DEPENDENCY_SUPPORTED );
-#else
-        return( DEPENDENCY_NOT_SUPPORTED );
-#endif
-    }
-    if( strcmp( str, "MBEDTLS_SHA1_C" ) == 0 )
-    {
-#if defined(MBEDTLS_SHA1_C)
-        return( DEPENDENCY_SUPPORTED );
-#else
-        return( DEPENDENCY_NOT_SUPPORTED );
-#endif
-    }
-    if( strcmp( str, "MBEDTLS_SHA256_C" ) == 0 )
-    {
-#if defined(MBEDTLS_SHA256_C)
-        return( DEPENDENCY_SUPPORTED );
-#else
-        return( DEPENDENCY_NOT_SUPPORTED );
-#endif
-    }
-    if( strcmp( str, "MBEDTLS_SELF_TEST" ) == 0 )
-    {
-#if defined(MBEDTLS_SELF_TEST)
-        return( DEPENDENCY_SUPPORTED );
-#else
-        return( DEPENDENCY_NOT_SUPPORTED );
-#endif
-    }
-    if( strcmp( str, "MBEDTLS_SHA512_C" ) == 0 )
-    {
-#if defined(MBEDTLS_SHA512_C)
-        return( DEPENDENCY_SUPPORTED );
-#else
-        return( DEPENDENCY_NOT_SUPPORTED );
-#endif
-    }
-    if( strcmp( str, "MBEDTLS_MD4_C" ) == 0 )
-    {
-#if defined(MBEDTLS_MD4_C)
-        return( DEPENDENCY_SUPPORTED );
-#else
-        return( DEPENDENCY_NOT_SUPPORTED );
-#endif
-    }
-    if( strcmp( str, "MBEDTLS_MD2_C" ) == 0 )
-    {
-#if defined(MBEDTLS_MD2_C)
-        return( DEPENDENCY_SUPPORTED );
-#else
-        return( DEPENDENCY_NOT_SUPPORTED );
-#endif
-    }
 
-    return( DEPENDENCY_NOT_SUPPORTED );
-}
-
-int dispatch_test(int cnt, char *params[50])
-{
-    int ret;
-    ((void) cnt);
-    ((void) params);
-
-    ret = DISPATCH_TEST_SUCCESS;
-
-    // Cast to void to avoid compiler warnings
-    (void)ret;
-
-    if( strcmp( params[0], "mbedtls_rsa_pkcs1_sign" ) == 0 )
-    {
-
-        char *param1 = params[1];
-        int param2;
-        int param3;
-        int param4;
-        int param5;
-        char *param6 = params[6];
-        int param7;
-        char *param8 = params[8];
-        int param9;
-        char *param10 = params[10];
-        int param11;
-        char *param12 = params[12];
-        char *param13 = params[13];
-        int param14;
-
-        if( cnt != 15 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 15 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-        if( verify_string( &param1 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[2], &param2 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[3], &param3 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[4], &param4 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[5], &param5 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param6 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[7], &param7 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param8 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[9], &param9 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param10 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[11], &param11 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param12 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param13 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[14], &param14 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-
-        test_suite_mbedtls_rsa_pkcs1_sign( param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12, param13, param14 );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else if( strcmp( params[0], "mbedtls_rsa_pkcs1_verify" ) == 0 )
-    {
-
-        char *param1 = params[1];
-        int param2;
-        int param3;
-        int param4;
-        int param5;
-        char *param6 = params[6];
-        int param7;
-        char *param8 = params[8];
-        char *param9 = params[9];
-        int param10;
-
-        if( cnt != 11 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 11 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-        if( verify_string( &param1 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[2], &param2 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[3], &param3 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[4], &param4 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[5], &param5 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param6 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[7], &param7 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param8 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param9 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[10], &param10 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-
-        test_suite_mbedtls_rsa_pkcs1_verify( param1, param2, param3, param4, param5, param6, param7, param8, param9, param10 );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else if( strcmp( params[0], "rsa_pkcs1_sign_raw" ) == 0 )
-    {
-
-        char *param1 = params[1];
-        char *param2 = params[2];
-        int param3;
-        int param4;
-        int param5;
-        char *param6 = params[6];
-        int param7;
-        char *param8 = params[8];
-        int param9;
-        char *param10 = params[10];
-        int param11;
-        char *param12 = params[12];
-        char *param13 = params[13];
-
-        if( cnt != 14 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 14 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-        if( verify_string( &param1 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param2 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[3], &param3 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[4], &param4 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[5], &param5 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param6 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[7], &param7 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param8 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[9], &param9 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param10 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[11], &param11 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param12 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param13 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-
-        test_suite_rsa_pkcs1_sign_raw( param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12, param13 );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else if( strcmp( params[0], "rsa_pkcs1_verify_raw" ) == 0 )
-    {
-
-        char *param1 = params[1];
-        char *param2 = params[2];
-        int param3;
-        int param4;
-        int param5;
-        char *param6 = params[6];
-        int param7;
-        char *param8 = params[8];
-        char *param9 = params[9];
-        int param10;
-
-        if( cnt != 11 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 11 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-        if( verify_string( &param1 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param2 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[3], &param3 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[4], &param4 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[5], &param5 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param6 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[7], &param7 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param8 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param9 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[10], &param10 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-
-        test_suite_rsa_pkcs1_verify_raw( param1, param2, param3, param4, param5, param6, param7, param8, param9, param10 );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else if( strcmp( params[0], "mbedtls_rsa_pkcs1_encrypt" ) == 0 )
-    {
-
-        char *param1 = params[1];
-        int param2;
-        int param3;
-        int param4;
-        char *param5 = params[5];
-        int param6;
-        char *param7 = params[7];
-        char *param8 = params[8];
-        int param9;
-
-        if( cnt != 10 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 10 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-        if( verify_string( &param1 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[2], &param2 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[3], &param3 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[4], &param4 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param5 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[6], &param6 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param7 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param8 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[9], &param9 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-
-        test_suite_mbedtls_rsa_pkcs1_encrypt( param1, param2, param3, param4, param5, param6, param7, param8, param9 );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else if( strcmp( params[0], "rsa_pkcs1_encrypt_bad_rng" ) == 0 )
-    {
-
-        char *param1 = params[1];
-        int param2;
-        int param3;
-        int param4;
-        char *param5 = params[5];
-        int param6;
-        char *param7 = params[7];
-        char *param8 = params[8];
-        int param9;
-
-        if( cnt != 10 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 10 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-        if( verify_string( &param1 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[2], &param2 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[3], &param3 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[4], &param4 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param5 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[6], &param6 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param7 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param8 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[9], &param9 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-
-        test_suite_rsa_pkcs1_encrypt_bad_rng( param1, param2, param3, param4, param5, param6, param7, param8, param9 );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else if( strcmp( params[0], "mbedtls_rsa_pkcs1_decrypt" ) == 0 )
-    {
-
-        char *param1 = params[1];
-        int param2;
-        int param3;
-        int param4;
-        char *param5 = params[5];
-        int param6;
-        char *param7 = params[7];
-        int param8;
-        char *param9 = params[9];
-        int param10;
-        char *param11 = params[11];
-        int param12;
-        char *param13 = params[13];
-        int param14;
-
-        if( cnt != 15 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 15 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-        if( verify_string( &param1 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[2], &param2 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[3], &param3 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[4], &param4 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param5 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[6], &param6 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param7 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[8], &param8 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param9 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[10], &param10 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param11 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[12], &param12 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param13 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[14], &param14 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-
-        test_suite_mbedtls_rsa_pkcs1_decrypt( param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12, param13, param14 );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else if( strcmp( params[0], "mbedtls_rsa_public" ) == 0 )
-    {
-
-        char *param1 = params[1];
-        int param2;
-        int param3;
-        char *param4 = params[4];
-        int param5;
-        char *param6 = params[6];
-        char *param7 = params[7];
-        int param8;
-
-        if( cnt != 9 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 9 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-        if( verify_string( &param1 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[2], &param2 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[3], &param3 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param4 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[5], &param5 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param6 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param7 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[8], &param8 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-
-        test_suite_mbedtls_rsa_public( param1, param2, param3, param4, param5, param6, param7, param8 );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else if( strcmp( params[0], "mbedtls_rsa_private" ) == 0 )
-    {
-
-        char *param1 = params[1];
-        int param2;
-        int param3;
-        char *param4 = params[4];
-        int param5;
-        char *param6 = params[6];
-        int param7;
-        char *param8 = params[8];
-        int param9;
-        char *param10 = params[10];
-        char *param11 = params[11];
-        int param12;
-
-        if( cnt != 13 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 13 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-        if( verify_string( &param1 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[2], &param2 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[3], &param3 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param4 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[5], &param5 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param6 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[7], &param7 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param8 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[9], &param9 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param10 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param11 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[12], &param12 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-
-        test_suite_mbedtls_rsa_private( param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12 );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else if( strcmp( params[0], "rsa_check_privkey_null" ) == 0 )
-    {
-
-
-        if( cnt != 1 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 1 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-
-        test_suite_rsa_check_privkey_null(  );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else if( strcmp( params[0], "mbedtls_rsa_check_pubkey" ) == 0 )
-    {
-
-        int param1;
-        char *param2 = params[2];
-        int param3;
-        char *param4 = params[4];
-        int param5;
-
-        if( cnt != 6 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 6 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-        if( verify_int( params[1], &param1 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param2 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[3], &param3 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param4 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[5], &param5 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-
-        test_suite_mbedtls_rsa_check_pubkey( param1, param2, param3, param4, param5 );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else if( strcmp( params[0], "mbedtls_rsa_check_privkey" ) == 0 )
-    {
-
-        int param1;
-        int param2;
-        char *param3 = params[3];
-        int param4;
-        char *param5 = params[5];
-        int param6;
-        char *param7 = params[7];
-        int param8;
-        char *param9 = params[9];
-        int param10;
-        char *param11 = params[11];
-        int param12;
-        char *param13 = params[13];
-        int param14;
-        char *param15 = params[15];
-        int param16;
-        char *param17 = params[17];
-        int param18;
-
-        if( cnt != 19 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 19 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-        if( verify_int( params[1], &param1 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[2], &param2 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param3 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[4], &param4 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param5 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[6], &param6 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param7 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[8], &param8 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param9 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[10], &param10 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param11 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[12], &param12 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param13 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[14], &param14 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param15 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[16], &param16 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param17 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[18], &param18 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-
-        test_suite_mbedtls_rsa_check_privkey( param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12, param13, param14, param15, param16, param17, param18 );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else if( strcmp( params[0], "rsa_check_pubpriv" ) == 0 )
-    {
-
-        int param1;
-        int param2;
-        char *param3 = params[3];
-        int param4;
-        char *param5 = params[5];
-        int param6;
-        char *param7 = params[7];
-        int param8;
-        char *param9 = params[9];
-        int param10;
-        char *param11 = params[11];
-        int param12;
-        char *param13 = params[13];
-        int param14;
-        char *param15 = params[15];
-        int param16;
-        char *param17 = params[17];
-        int param18;
-        char *param19 = params[19];
-        int param20;
-        char *param21 = params[21];
-        int param22;
-
-        if( cnt != 23 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 23 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-        if( verify_int( params[1], &param1 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[2], &param2 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param3 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[4], &param4 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param5 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[6], &param6 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param7 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[8], &param8 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param9 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[10], &param10 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param11 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[12], &param12 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param13 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[14], &param14 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param15 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[16], &param16 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param17 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[18], &param18 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param19 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[20], &param20 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_string( &param21 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[22], &param22 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-
-        test_suite_rsa_check_pubpriv( param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12, param13, param14, param15, param16, param17, param18, param19, param20, param21, param22 );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else if( strcmp( params[0], "mbedtls_rsa_gen_key" ) == 0 )
-    {
-        int param1;
-        int param2;
-        int param3;
-
-        if( cnt != 4 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 4 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-        if( verify_int( params[1], &param1 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[2], &param2 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-        if( verify_int( params[3], &param3 ) != 0 ) return( DISPATCH_INVALID_TEST_DATA );
-
-        test_suite_mbedtls_rsa_gen_key( param1, param2, param3 );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else if( strcmp( params[0], "rsa_selftest" ) == 0 )
-    {
-        if( cnt != 1 )
-        {
-            printf("\nIncorrect argument count (%d != %d)\n", cnt, 1 );
-            return( DISPATCH_INVALID_TEST_DATA );
-        }
-
-        test_suite_rsa_selftest(  );
-        return ( DISPATCH_TEST_SUCCESS );
-    }
-    else
-
-    {
-        printf("FAILED\nSkipping unknown test function '%s'\n", params[0] );
-        ret = DISPATCH_TEST_FN_NOT_FOUND;
+        default:
+           {
+                ret = KEY_VALUE_MAPPING_NOT_FOUND;
+           }
+           break;
     }
     return( ret );
 }
 
-int parse_arguments( char *buf, size_t len, char *params[50] )
+
+/**
+ * \brief       Checks if the dependency i.e. the compile flag is set.
+ *              For optimizing space for embedded targets each dependency
+ *              is identified by a unique identifier instead of string literals.
+ *              Identifiers and check code is generated by script:
+ *              generate_test_code.py
+ *
+ * \param exp_id    Dependency identifier.
+ *
+ * \return       DEPENDENCY_SUPPORTED if set else DEPENDENCY_NOT_SUPPORTED
+ */
+int dep_check( int dep_id )
 {
-    int cnt = 0, i;
+    int ret = DEPENDENCY_NOT_SUPPORTED;
+
+    (void) dep_id;
+
+    switch( dep_id )
+    {
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+
+        case 0:
+            {
+#if defined(MBEDTLS_SHA1_C)
+                ret = DEPENDENCY_SUPPORTED;
+#else
+                ret = DEPENDENCY_NOT_SUPPORTED;
+#endif
+            }
+            break;
+        case 1:
+            {
+#if defined(MBEDTLS_PKCS1_V15)
+                ret = DEPENDENCY_SUPPORTED;
+#else
+                ret = DEPENDENCY_NOT_SUPPORTED;
+#endif
+            }
+            break;
+        case 2:
+            {
+#if defined(MBEDTLS_SHA256_C)
+                ret = DEPENDENCY_SUPPORTED;
+#else
+                ret = DEPENDENCY_NOT_SUPPORTED;
+#endif
+            }
+            break;
+        case 3:
+            {
+#if defined(MBEDTLS_SHA512_C)
+                ret = DEPENDENCY_SUPPORTED;
+#else
+                ret = DEPENDENCY_NOT_SUPPORTED;
+#endif
+            }
+            break;
+        case 4:
+            {
+#if defined(MBEDTLS_MD2_C)
+                ret = DEPENDENCY_SUPPORTED;
+#else
+                ret = DEPENDENCY_NOT_SUPPORTED;
+#endif
+            }
+            break;
+        case 5:
+            {
+#if defined(MBEDTLS_MD4_C)
+                ret = DEPENDENCY_SUPPORTED;
+#else
+                ret = DEPENDENCY_NOT_SUPPORTED;
+#endif
+            }
+            break;
+        case 6:
+            {
+#if defined(MBEDTLS_MD5_C)
+                ret = DEPENDENCY_SUPPORTED;
+#else
+                ret = DEPENDENCY_NOT_SUPPORTED;
+#endif
+            }
+            break;
+        case 7:
+            {
+#if !defined(MBEDTLS_RSA_NO_CRT)
+                ret = DEPENDENCY_SUPPORTED;
+#else
+                ret = DEPENDENCY_NOT_SUPPORTED;
+#endif
+            }
+            break;
+        case 8:
+            {
+#if defined(MBEDTLS_SELF_TEST)
+                ret = DEPENDENCY_SUPPORTED;
+#else
+                ret = DEPENDENCY_NOT_SUPPORTED;
+#endif
+            }
+            break;
+#endif
+
+        default:
+            break;
+    }
+    return( ret );
+}
+
+
+/**
+ * \brief       Function pointer type for test function wrappers.
+ *
+ *
+ * \param void **   Pointer to void pointers. Represents an array of test
+ *                  function parameters.
+ *
+ * \return       void
+ */
+typedef void (*TestWrapper_t)( void ** );
+
+
+/**
+ * \brief       Table of test function wrappers. Used by dispatch_test().
+ *              This table is populated by script:
+ *              generate_test_code.py
+ *
+ */
+TestWrapper_t test_funcs[] =
+{
+/* Function Id: 0 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_mbedtls_rsa_pkcs1_sign_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 1 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_mbedtls_rsa_pkcs1_verify_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 2 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_rsa_pkcs1_sign_raw_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 3 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_rsa_pkcs1_verify_raw_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 4 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_mbedtls_rsa_pkcs1_encrypt_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 5 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_rsa_pkcs1_encrypt_bad_rng_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 6 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_mbedtls_rsa_pkcs1_decrypt_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 7 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_mbedtls_rsa_public_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 8 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_mbedtls_rsa_private_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 9 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_rsa_check_privkey_null_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 10 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_mbedtls_rsa_check_pubkey_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 11 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_mbedtls_rsa_check_privkey_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 12 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_rsa_check_pubpriv_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 13 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME) && defined(MBEDTLS_CTR_DRBG_C) && defined(MBEDTLS_ENTROPY_C) && defined(ENTROPY_HAVE_STRONG)
+    test_mbedtls_rsa_gen_key_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 14 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME) && defined(MBEDTLS_CTR_DRBG_C) && defined(MBEDTLS_ENTROPY_C)
+    test_mbedtls_rsa_deduce_primes_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 15 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_mbedtls_rsa_deduce_private_exponent_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 16 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME) && defined(MBEDTLS_CTR_DRBG_C) && defined(MBEDTLS_ENTROPY_C) && defined(ENTROPY_HAVE_STRONG)
+    test_mbedtls_rsa_import_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 17 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME)
+    test_mbedtls_rsa_export_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 18 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME) && defined(MBEDTLS_ENTROPY_C) && defined(ENTROPY_HAVE_STRONG)
+    test_mbedtls_rsa_validate_params_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 19 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME) && defined(MBEDTLS_CTR_DRBG_C) && defined(MBEDTLS_ENTROPY_C)
+    test_mbedtls_rsa_export_raw_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 20 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME) && defined(MBEDTLS_CTR_DRBG_C) && defined(MBEDTLS_ENTROPY_C) && defined(ENTROPY_HAVE_STRONG)
+    test_mbedtls_rsa_import_raw_wrapper,
+#else
+    NULL,
+#endif
+/* Function Id: 21 */
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_GENPRIME) && defined(MBEDTLS_SELF_TEST)
+    test_rsa_selftest_wrapper,
+#else
+    NULL,
+#endif
+
+};
+
+
+/**
+ * \brief       Dispatches test functions based on function index.
+ *
+ * \param exp_id    Test function index.
+ *
+ * \return       DISPATCH_TEST_SUCCESS if found
+ *               DISPATCH_TEST_FN_NOT_FOUND if not found
+ *               DISPATCH_UNSUPPORTED_SUITE if not compile time enabled.
+ */
+int dispatch_test( int func_idx, void ** params )
+{
+    int ret = DISPATCH_TEST_SUCCESS;
+    TestWrapper_t fp = NULL;
+
+    if ( func_idx < (int)( sizeof( test_funcs ) / sizeof( TestWrapper_t ) ) )
+    {
+        fp = test_funcs[func_idx];
+        if ( fp )
+            fp( params );
+        else
+            ret = DISPATCH_UNSUPPORTED_SUITE;
+    }
+    else
+    {
+        ret = DISPATCH_TEST_FN_NOT_FOUND;
+    }
+
+    return( ret );
+}
+
+
+/**
+ * \brief       Checks if test function is supported
+ *
+ * \param exp_id    Test function index.
+ *
+ * \return       DISPATCH_TEST_SUCCESS if found
+ *               DISPATCH_TEST_FN_NOT_FOUND if not found
+ *               DISPATCH_UNSUPPORTED_SUITE if not compile time enabled.
+ */
+int check_test( int func_idx )
+{
+    int ret = DISPATCH_TEST_SUCCESS;
+    TestWrapper_t fp = NULL;
+
+    if ( func_idx < (int)( sizeof(test_funcs)/sizeof( TestWrapper_t ) ) )
+    {
+        fp = test_funcs[func_idx];
+        if ( fp == NULL )
+            ret = DISPATCH_UNSUPPORTED_SUITE;
+    }
+    else
+    {
+        ret = DISPATCH_TEST_FN_NOT_FOUND;
+    }
+
+    return( ret );
+}
+
+
+/**
+ * \brief       Verifies that string is in string parameter format i.e. "<str>"
+ *              It also strips enclosing '"' from the input string.
+ *
+ * \param str   String parameter.
+ *
+ * \return      0 if success else 1
+ */
+int verify_string( char **str )
+{
+    if( ( *str )[0] != '"' ||
+        ( *str )[strlen( *str ) - 1] != '"' )
+    {
+        printf("Expected string (with \"\") for parameter and got: %s\n", *str );
+        return( -1 );
+    }
+
+    ( *str )++;
+    ( *str )[strlen( *str ) - 1] = '\0';
+
+    return( 0 );
+}
+
+/**
+ * \brief       Verifies that string is an integer. Also gives the converted
+ *              integer value.
+ *
+ * \param str   Input string.
+ * \param value Pointer to int for output value.
+ *
+ * \return      0 if success else 1
+ */
+int verify_int( char *str, int *value )
+{
+    size_t i;
+    int minus = 0;
+    int digits = 1;
+    int hex = 0;
+
+    for( i = 0; i < strlen( str ); i++ )
+    {
+        if( i == 0 && str[i] == '-' )
+        {
+            minus = 1;
+            continue;
+        }
+
+        if( ( ( minus && i == 2 ) || ( !minus && i == 1 ) ) &&
+            str[i - 1] == '0' && ( str[i] == 'x' || str[i] == 'X' ) )
+        {
+            hex = 1;
+            continue;
+        }
+
+        if( ! ( ( str[i] >= '0' && str[i] <= '9' ) ||
+                ( hex && ( ( str[i] >= 'a' && str[i] <= 'f' ) ||
+                           ( str[i] >= 'A' && str[i] <= 'F' ) ) ) ) )
+        {
+            digits = 0;
+            break;
+        }
+    }
+
+    if( digits )
+    {
+        if( hex )
+            *value = strtol( str, NULL, 16 );
+        else
+            *value = strtol( str, NULL, 10 );
+
+        return( 0 );
+    }
+
+    printf("Expected integer for parameter and got: %s\n", str );
+    return( KEY_VALUE_MAPPING_NOT_FOUND );
+}
+
+/**
+ * \brief       Splits string delimited by ':'. Ignores '\:'.
+ *
+ * \param buf           Input string
+ * \param len           Input string length
+ * \param params        Out params found
+ * \param params_len    Out params array len
+ *
+ * \return      Count of strings found.
+ */
+static int parse_arguments( char *buf, size_t len, char **params,
+                            size_t params_len )
+{
+    size_t cnt = 0, i;
     char *cur = buf;
     char *p = buf, *q;
 
     params[cnt++] = cur;
 
-    while( *p != '\0' && p < buf + len )
+    while( *p != '\0' && p < ( buf + len ) )
     {
         if( *p == '\\' )
         {
@@ -1850,6 +2575,7 @@ int parse_arguments( char *buf, size_t len, char *params[50] )
             if( p + 1 < buf + len )
             {
                 cur = p + 1;
+                assert( cnt < params_len );
                 params[cnt++] = cur;
             }
             *p = '\0';
@@ -1866,28 +2592,117 @@ int parse_arguments( char *buf, size_t len, char *params[50] )
 
         while( *p != '\0' )
         {
-            if( *p == '\\' && *(p + 1) == 'n' )
+            if( *p == '\\' && *( p + 1 ) == 'n' )
             {
                 p += 2;
-                *(q++) = '\n';
+                *( q++ ) = '\n';
             }
-            else if( *p == '\\' && *(p + 1) == ':' )
+            else if( *p == '\\' && *( p + 1 ) == ':' )
             {
                 p += 2;
-                *(q++) = ':';
+                *( q++ ) = ':';
             }
-            else if( *p == '\\' && *(p + 1) == '?' )
+            else if( *p == '\\' && *( p + 1 ) == '?' )
             {
                 p += 2;
-                *(q++) = '?';
+                *( q++ ) = '?';
             }
             else
-                *(q++) = *(p++);
+                *( q++ ) = *( p++ );
         }
         *q = '\0';
     }
 
     return( cnt );
+}
+
+/**
+ * \brief       Converts parameters into test function consumable parameters.
+ *              Example: Input:  {"int", "0", "char*", "Hello",
+ *                                "hex", "abef", "exp", "1"}
+ *                      Output:  {
+ *                                0,                // Verified int
+ *                                "Hello",          // Verified string
+ *                                2, { 0xab, 0xef },// Converted len,hex pair
+ *                                9600              // Evaluated expression
+ *                               }
+ *
+ *
+ * \param cnt               Parameter array count.
+ * \param params            Out array of found parameters.
+ * \param int_params_store  Memory for storing processed integer parameters.
+ *
+ * \return      0 for success else 1
+ */
+static int convert_params( size_t cnt , char ** params , int * int_params_store )
+{
+    char ** cur = params;
+    char ** out = params;
+    int ret = DISPATCH_TEST_SUCCESS;
+
+    while ( cur < params + cnt )
+    {
+        char * type = *cur++;
+        char * val = *cur++;
+
+        if ( strcmp( type, "char*" ) == 0 )
+        {
+            if ( verify_string( &val ) == 0 )
+            {
+              *out++ = val;
+            }
+            else
+            {
+                ret = ( DISPATCH_INVALID_TEST_DATA );
+                break;
+            }
+        }
+        else if ( strcmp( type, "int" ) == 0 )
+        {
+            if ( verify_int( val, int_params_store ) == 0 )
+            {
+              *out++ = (char *) int_params_store++;
+            }
+            else
+            {
+                ret = ( DISPATCH_INVALID_TEST_DATA );
+                break;
+            }
+        }
+        else if ( strcmp( type, "hex" ) == 0 )
+        {
+            if ( verify_string( &val ) == 0 )
+            {
+                *int_params_store = unhexify( (unsigned char *) val, val );
+                *out++ = val;
+                *out++ = (char *)(int_params_store++);
+            }
+            else
+            {
+                ret = ( DISPATCH_INVALID_TEST_DATA );
+                break;
+            }
+        }
+        else if ( strcmp( type, "exp" ) == 0 )
+        {
+            int exp_id = strtol( val, NULL, 10 );
+            if ( get_expression ( exp_id, int_params_store ) == 0 )
+            {
+              *out++ = (char *)int_params_store++;
+            }
+            else
+            {
+              ret = ( DISPATCH_INVALID_TEST_DATA );
+              break;
+            }
+        }
+        else
+        {
+          ret = ( DISPATCH_INVALID_TEST_DATA );
+          break;
+        }
+    }
+    return( ret );
 }
 
 void UART_Init()
@@ -1952,9 +2767,12 @@ void Start_ETIMER0(void)
 /*-----------------------------------------------------------------------------*/
 int main(void)
 {
-    char  *params[50];
     int   i, cnt, pass_cnt = 0, vector_no;
+    int   function_id = 0;
     int   ret, total_tests=0, total_errors=0, total_skipped=0;
+    char  *params[50];
+    int   int_params[50];
+    char  buf[5000];
 
     sysDisableCache();
     sysFlushCache(I_D_CACHE);
@@ -1990,39 +2808,51 @@ int main(void)
                 while (1);
             }
             unmet_dep_count = 0;
+            
+            total_tests++;
 
-            if (get_line() != 0)
+            if (get_line(buf, sizeof(buf)) != 0)
                 break;
 
-            printf("%s \n", g_line_buff );
+            printf("%s \n", buf );
 
-            if (get_line() != 0)
+            if (get_line(buf, sizeof(buf)) != 0)
                 break;
-
-            cnt = parse_arguments(g_line_buff, strlen(g_line_buff), params );
+            cnt = parse_arguments( buf, strlen( buf ), params,
+                                   sizeof( params ) / sizeof( params[0] ) );
 
             if (strcmp( params[0], "depends_on" ) == 0 )
             {
                 for( i = 1; i < cnt; i++ )
                 {
-                    if( dep_check( params[i] ) != DEPENDENCY_SUPPORTED )
+                	int dep_id = strtol( params[i], NULL, 10 );
+                	
+                    if( dep_check( dep_id ) != DEPENDENCY_SUPPORTED )
                     {
                         unmet_dep_count++;
                         break;
                     }
                 }
 
-                if (get_line() != 0)
+                if (get_line(buf, sizeof(buf)) != 0)
                     break;
 
-                cnt = parse_arguments( g_line_buff, strlen(g_line_buff), params );
+                cnt = parse_arguments( buf, strlen( buf ), params,
+                                   sizeof( params ) / sizeof( params[0] ) );
             }
 
             // If there are no unmet dependencies execute the test
             if( unmet_dep_count == 0 )
             {
-                total_tests++;
-                ret = dispatch_test( cnt, params );
+                function_id = strtol( params[0], NULL, 10 );
+                if ( (ret = check_test( function_id )) == DISPATCH_TEST_SUCCESS )
+                {
+                    ret = convert_params( cnt - 1, params + 1, int_params );
+                    if ( DISPATCH_TEST_SUCCESS == ret )
+                    {
+                        ret = dispatch_test( function_id, (void **)( params + 1 ) );
+                    }
+                }
             }
 
             if( unmet_dep_count > 0 || ret == DISPATCH_UNSUPPORTED_SUITE )
@@ -2044,12 +2874,12 @@ int main(void)
                 total_errors++;
 
 #if 0
-            if (get_line() != 0)
+            if (get_line(buf, sizeof(buf)) != 0)
                 break;
 
-            if( strlen(g_line_buff) != 0 )
+            if( strlen(buf) != 0 )
             {
-                printf("Should be empty %d\n", (int) strlen(g_line_buff) );
+                printf("Should be empty %d\n", (int) strlen(buf) );
                 while (1);
             }
 #endif

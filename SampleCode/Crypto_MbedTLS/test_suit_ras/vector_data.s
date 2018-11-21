@@ -13,7 +13,8 @@
     ALIGN   4
         
 VectorBase_RSA
-    INCBIN .\test_suite_rsa.data
+;    INCBIN .\test_suite_rsa.data
+    INCBIN .\test_suite_rsa.datax
 VectorLimit_RSA
 
     END
