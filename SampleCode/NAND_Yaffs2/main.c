@@ -112,6 +112,9 @@ int main(void)
     int volatile i;
     unsigned int volatile btime, etime;
 
+    sysDisableCache();
+    sysFlushCache(I_D_CACHE);
+    sysEnableCache(CACHE_WRITE_BACK);
     UART_Init();
     Start_ETIMER0();
     printf("\n");

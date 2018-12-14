@@ -53,6 +53,9 @@ int32_t main (void)
 {
     unsigned int volatile i;
 
+    sysDisableCache();
+    sysFlushCache(I_D_CACHE);
+    sysEnableCache(CACHE_WRITE_BACK);
     UART_Init();
     printf("\n");
     printf("==========================\n");
