@@ -117,7 +117,7 @@ void  init_adc_init()
         val_sum += adc_val[i];
     }
     oldest = 0;
-    
+
     adc_trng_gen_rnd();    // drop the first 32-bits
 }
 

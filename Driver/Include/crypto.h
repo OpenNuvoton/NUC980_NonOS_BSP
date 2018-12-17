@@ -1433,6 +1433,9 @@ int32_t  ECC_Mutiply(CRPT_T *crpt, E_ECC_CURVE ecc_curve, char x1[], char y1[], 
 int32_t  ECC_GenerateSecretZ(CRPT_T *crpt, E_ECC_CURVE ecc_curve, char *private_k, char public_k1[], char public_k2[], char secret_z[]);
 int32_t  ECC_GenerateSignature(CRPT_T *crpt, E_ECC_CURVE ecc_curve, char *message, char *d, char *k, char *R, char *S);
 int32_t  ECC_VerifySignature(CRPT_T *crpt, E_ECC_CURVE ecc_curve, char *message, char *public_k1, char *public_k2, char *R, char *S);
+void RSA_Calculate_C(int rsa_len, char *n, char *C);
+int32_t  RSA_GenerateSignature(CRPT_T *crpt, int rsa_len, char *n, char *d, char *C, char *msg, char *sig);
+int32_t  RSA_VerifySignature(CRPT_T *crpt, int rsa_len, char *n, char *e, char *C, char *sig, char *msg);
 
 
 /*@}*/ /* end of group CRYPTO_EXPORTED_FUNCTIONS */
