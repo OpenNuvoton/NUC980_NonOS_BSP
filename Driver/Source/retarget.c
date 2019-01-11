@@ -56,8 +56,10 @@ struct __FILE
 {
     int handle; /* Add whatever you need here */
 };
+
 FILE __stdout;
 FILE __stdin;
+FILE __stderr;
 
 int fputc(int ch, FILE *f)
 {
@@ -69,6 +71,17 @@ int fgetc(FILE *stream)
     return (recvchar());
 }
 
+int fclose(FILE* f) {
+  return (0);
+}
+
+int fseek (FILE *f, long nPos, int nMode)  {
+  return (0);
+}
+
+int fflush (FILE *f)  {
+  return (0);
+}
 
 int ferror(FILE *f)
 {
@@ -76,12 +89,10 @@ int ferror(FILE *f)
     return EOF;
 }
 
-
 void _ttywrch(int ch)
 {
     sendchar(ch);
 }
-
 
 void _sys_exit(int return_code)
 {
