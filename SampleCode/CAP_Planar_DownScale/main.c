@@ -14,6 +14,10 @@
 #include "cap.h"
 #include <stdio.h>
 
+#define SENSOR_NT99141  0x1
+#define SENSOR_NT99050  0x2
+#define SENSOR_GC0308   0x3
+
 /*------------------------------------------------------------------------------------------*/
 /* To run CAP_InterruptHandler, when CAP frame end interrupt                                */
 /*------------------------------------------------------------------------------------------*/
@@ -144,7 +148,7 @@ void UART_Init()
 #define SYSTEM_HEIGHT               120
 uint8_t u8FrameBuffer[SYSTEM_WIDTH*SYSTEM_HEIGHT*2];
 
-void PlanarFormatDownScale(void)
+void PlanarFormatDownScale(uint32_t SensorId)
 {
     uint32_t u32Frame;
 
@@ -152,7 +156,10 @@ void PlanarFormatDownScale(void)
     CAP_EnableInt(CAP1,CAP_INT_VIEN_Msk);
 
     /* Set Vsync polarity, Hsync polarity, pixel clock polarity, Sensor Format and Order */
-    CAP_Open(CAP1,NT99XXXSensorPolarity | NT99XXXDataFormatAndOrder, CAP_CTL_PLNEN );
+    if(SensorId==SENSOR_GC0308)
+        CAP_Open(CAP1,GC0308SensorPolarity | GC0308DataFormatAndOrder, CAP_CTL_PLNEN );
+    else
+        CAP_Open(CAP1,NT99XXXSensorPolarity | NT99XXXDataFormatAndOrder, CAP_CTL_PLNEN );
 
     /* Set Cropping Window Vertical/Horizontal Starting Address and Cropping Window Size */
     CAP_SetCroppingWindow(CAP1,0,0,SENSOR_IN_HEIGHT,SENSOR_IN_WIDTH);
@@ -185,11 +192,13 @@ void PlanarFormatDownScale(void)
 
 extern int InitNT99141_VGA_YUV422(void);
 extern int InitNT99050_VGA_YUV422(void);
+extern int InitGC0308_VGA_YUV422(void);
 /*---------------------------------------------------------------------------------------------------------*/
 /*  Main Function                                                                                          */
 /*---------------------------------------------------------------------------------------------------------*/
 int32_t main (void)
 {
+    uint32_t sensor_id;
     uint32_t u32Item;
     sysDisableCache();
     sysFlushCache(I_D_CACHE);
@@ -211,25 +220,34 @@ int32_t main (void)
         printf(" CAP library demo code                                \n");
         printf(" [1] NT99141 VGA                                      \n");
         printf(" [2] NT99050 VGA                                      \n");
+        printf(" [3] GC0308 VGA                                       \n");
         printf("======================================================\n");
         u32Item = getchar();
         switch(u32Item)
         {
         case '1':
             /* Initialize NT99141 sensor and set NT99141 output YUV422 format  */
+            sensor_id=SENSOR_NT99141;
             if(InitNT99141_VGA_YUV422()==FALSE)
                 printf("Initialize NT99141 sensor failed\n");
             break;
         case '2':
             /* Initialize NT99050 sensor and set NT99050 output YUV422 format  */
+            sensor_id=SENSOR_NT99050;
             if(InitNT99050_VGA_YUV422()==FALSE)
                 printf("Initialize NT99050 sensor failed\n");
+            break;
+        case '3':
+            /* Initialize GC0308 sensor and set GC0308 output YUV422 format  */
+            sensor_id=SENSOR_GC0308;
+            if(InitGC0308_VGA_YUV422()==FALSE)
+                printf("Initialize GC0308 sensor failed\n");
             break;
         default:
             break;
         }
         /* Using Planar format to Image down scale */
-        PlanarFormatDownScale();
+        PlanarFormatDownScale(sensor_id);
     }
     while((u32Item!= 'q') || (u32Item!= 'Q'));
 

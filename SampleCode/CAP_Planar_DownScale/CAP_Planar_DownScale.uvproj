@@ -438,6 +438,11 @@
               <FileType>1</FileType>
               <FilePath>.\sensor_nt99050.c</FilePath>
             </File>
+            <File>
+              <FileName>sensor_gc0308.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\sensor_gc0308.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
