@@ -98,17 +98,17 @@ int main(void)
     sysEnableInterrupt(IRQ_EXTI1);
 
     /* Configure PA.0 as EINT0 pin and enable interrupt by falling edge trigger */
-    outpw(REG_SYS_GPA_MFPL, (inpw(REG_SYS_GPA_MFPL) & ~0x0000000f) | 0x5);
+    GPIO_MFP_PA0MFP_EINT0;
     GPIO_SetMode(PA, BIT0, GPIO_MODE_INPUT);
     GPIO_EnableInt(PA, 0, GPIO_INT_FALLING);
 
     /* Configure PA.13 as EINT0 pin and enable interrupt by rising edge trigger */
-    outpw(REG_SYS_GPA_MFPH, (inpw(REG_SYS_GPA_MFPH) & ~0x00f00000) | 0x800000);
+    GPIO_MFP_PA13MFP_EINT0;
     GPIO_SetMode(PA, BIT13, GPIO_MODE_INPUT);
     GPIO_EnableInt(PA, 13, GPIO_INT_RISING);
 
     /* Configure PA.1 as EINT1 pin and enable interrupt by falling and rising edge trigger */
-    outpw(REG_SYS_GPA_MFPL, (inpw(REG_SYS_GPA_MFPL) & ~0x000000f0) | 0x50);
+    GPIO_MFP_PA1MFP_EINT1;
     GPIO_SetMode(PA, BIT1, GPIO_MODE_INPUT);
     GPIO_EnableInt(PA, 1, GPIO_INT_BOTH_EDGE);
 

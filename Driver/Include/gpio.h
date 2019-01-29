@@ -394,6 +394,20 @@ typedef struct
 #define GPIO_PUSEL_PULL_UP          0x1UL           /*!< GPIO PUSEL setting for Pull-up Mode \hideinitializer */
 #define GPIO_PUSEL_PULL_DOWN        0x2UL           /*!< GPIO PUSEL setting for Pull-down Mode \hideinitializer */
 
+/*---------------------------------------------------------------------------------------------------------*/
+/*  GPIO External interrupt Constant Definitions                                                           */
+/*---------------------------------------------------------------------------------------------------------*/
+#define GPIO_MFP_PA0MFP_EINT0   outpw(REG_SYS_GPA_MFPL, ((inpw(REG_SYS_GPA_MFPL) & 0xFFFFFFF0) | 0x00000005)) /*!< PA0 MFP setting for EINT0  \hideinitializer */
+#define GPIO_MFP_PA13MFP_EINT0  outpw(REG_SYS_GPA_MFPH, ((inpw(REG_SYS_GPA_MFPH) & 0xFF0FFFFF) | 0x00D00000)) /*!< PA13 MFP setting for EINT0  \hideinitializer */
+#define GPIO_MFP_PA1MFP_EINT1   outpw(REG_SYS_GPA_MFPL, ((inpw(REG_SYS_GPA_MFPL) & 0xFFFFFF0F) | 0x000000D0)) /*!< PA1 MFP setting for EINT1  \hideinitializer */
+#define GPIO_MFP_PA14MFP_EINT1  outpw(REG_SYS_GPA_MFPH, ((inpw(REG_SYS_GPA_MFPH) & 0xF0FFFFFF) | 0x08000000)) /*!< PA14 MFP setting for EINT1  \hideinitializer */
+#define GPIO_MFP_PD0MFP_EINT2   outpw(REG_SYS_GPD_MFPL, ((inpw(REG_SYS_GPD_MFPL) & 0xFFFFFFF0) | 0x00000004)) /*!< PD0 MFP setting for EINT2  \hideinitializer */
+#define GPIO_MFP_PE10MFP_EINT2  outpw(REG_SYS_GPE_MFPH, ((inpw(REG_SYS_GPE_MFPH) & 0xFFFFF0FF) | 0x00000500)) /*!< PE10 MFP setting for EINT2  \hideinitializer */
+#define GPIO_MFP_PB3MFP_EINT2   outpw(REG_SYS_GPB_MFPL, ((inpw(REG_SYS_GPB_MFPL) & 0xFFFF0FFF) | 0x00003000)) /*!< PB3 MFP setting for EINT2  \hideinitializer */
+#define GPIO_MFP_PB13MFP_EINT2  outpw(REG_SYS_GPB_MFPH, ((inpw(REG_SYS_GPB_MFPH) & 0xFF0FFFFF) | 0x00200000)) /*!< PB13 MFP setting for EINT2  \hideinitializer */
+#define GPIO_MFP_PD1MFP_EINT3   outpw(REG_SYS_GPD_MFPL, ((inpw(REG_SYS_GPD_MFPL) & 0xFFFFFF0F) | 0x00000040)) /*!< PD1 MFP setting for EINT3  \hideinitializer */
+#define GPIO_MFP_PE12MFP_EINT3  outpw(REG_SYS_GPE_MFPH, ((inpw(REG_SYS_GPE_MFPH) & 0xFFF0FFFF) | 0x00050000)) /*!< PE12 MFP setting for EINT3  \hideinitializer */
+#define GPIO_MFP_PG15MFP_EINT3  outpw(REG_SYS_GPG_MFPH, ((inpw(REG_SYS_GPG_MFPH) & 0x0FFFFFFF) | 0x40000000)) /*!< PG15 MFP setting for EINT3  \hideinitializer */
 
 /*---------------------------------------------------------------------------------------------------------*/
 /*  GPIO_DBCTL Constant Definitions                                                                          */
