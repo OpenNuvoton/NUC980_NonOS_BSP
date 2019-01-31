@@ -157,10 +157,10 @@ uint8_t gu8ConfigDescriptor[] __attribute__((aligned(4))) =
 
 #ifdef __ICCARM__
 #pragma data_alignment=4
-uint8_t gu8OtherConfigDescriptor[] =
+uint8_t gu8OtherConfigDescriptorHS[] =
 {
 #else
-uint8_t gu8OtherConfigDescriptor[] __attribute__((aligned(4))) =
+uint8_t gu8OtherConfigDescriptorHS[] __attribute__((aligned(4))) =
 {
 #endif
     LEN_CONFIG,     /* bLength */
@@ -261,6 +261,58 @@ uint8_t gu8ConfigDescriptorFS[] __attribute__((aligned(4))) =
     HID_DEFAULT_INT_IN_INTERVAL     /* bInterval */
 };
 
+#ifdef __ICCARM__
+#pragma data_alignment=4
+uint8_t gu8OtherConfigDescriptorFS[] =
+{
+#else
+uint8_t gu8OtherConfigDescriptorFS[] __attribute__((aligned(4))) =
+{
+#endif
+    LEN_CONFIG,     /* bLength */
+    DESC_OTHERSPEED,    /* bDescriptorType */
+    /* wTotalLength */
+    LEN_CONFIG_AND_SUBORDINATE & 0x00FF,
+    ((LEN_CONFIG_AND_SUBORDINATE & 0xFF00) >> 8),
+    0x01,           /* bNumInterfaces */
+    0x01,           /* bConfigurationValue */
+    0x00,           /* iConfiguration */
+    0x80 | (USBD_SELF_POWERED << 6) | (USBD_REMOTE_WAKEUP << 5),/* bmAttributes */
+    USBD_MAX_POWER,         /* MaxPower */
+
+    /* I/F descr: HID */
+    LEN_INTERFACE,  /* bLength */
+    DESC_INTERFACE, /* bDescriptorType */
+    0x00,           /* bInterfaceNumber */
+    0x00,           /* bAlternateSetting */
+    0x01,           /* bNumEndpoints */
+    0x03,           /* bInterfaceClass */
+    0x01,           /* bInterfaceSubClass */
+    HID_MOUSE,      /* bInterfaceProtocol */
+    0x00,           /* iInterface */
+
+    /* HID Descriptor */
+    LEN_HID,        /* Size of this descriptor in UINT8s. */
+    DESC_HID,       /* HID descriptor type. */
+    0x10, 0x01,     /* HID Class Spec. release number. */
+    0x00,           /* H/W target country. */
+    0x01,           /* Number of HID class descriptors to follow. */
+    DESC_HID_RPT,   /* Descriptor type. */
+    /* Total length of report descriptor. */
+    sizeof(HID_MouseReportDescriptor) & 0x00FF,
+    ((sizeof(HID_MouseReportDescriptor) & 0xFF00) >> 8),
+
+    /* EP Descriptor: interrupt in. */
+    LEN_ENDPOINT,   /* bLength */
+    DESC_ENDPOINT,  /* bDescriptorType */
+    (INT_IN_EP_NUM | EP_INPUT), /* bEndpointAddress */
+    EP_INT,         /* bmAttributes */
+    /* wMaxPacketSize */
+    EPA_MAX_PKT_SIZE & 0x00FF,
+    ((EPA_MAX_PKT_SIZE & 0xFF00) >> 8),
+    HID_DEFAULT_INT_IN_INTERVAL     /* bInterval */
+};
+
 
 /*!<USB Language String Descriptor */
 #ifdef __ICCARM__
@@ -332,7 +384,9 @@ S_USBD_INFO_T gsInfo =
     gu8ConfigDescriptor,
     gpu8UsbString,
     gu8QualifierDescriptor,
-    gu8OtherConfigDescriptor,
+    gu8ConfigDescriptorFS,
+    gu8OtherConfigDescriptorHS,
+    gu8OtherConfigDescriptorFS,
     gu8UsbHidReport,
     gu32UsbHidReportLen,
 };

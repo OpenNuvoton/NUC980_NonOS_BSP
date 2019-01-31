@@ -112,9 +112,6 @@ void USBD_IRQHandler(void)
             USBD_SwReset();
             g_u8MscStart = 0;
             g_u8BulkState = BULK_NORMAL;
-            usbRbytes = 0;
-            usbRhead = 0;
-            usbRtail = 0;
 
             USBD_ResetDMA();
             USBD->EP[EPA].EPRSPCTL = USBD_EPRSPCTL_FLUSH_Msk;
@@ -167,7 +164,7 @@ void USBD_IRQHandler(void)
             {
                 if (g_usbd_ShortPacket == 1)
                 {
-                    USBD->EP[EPA].EPRSPCTL = USBD->EP[EPA].EPRSPCTL & 0x10 | USB_EP_RSPCTL_SHORTTXEN;    // packet end
+                    USBD->EP[EPA].EPRSPCTL = (USBD->EP[EPA].EPRSPCTL & 0x10) | USB_EP_RSPCTL_SHORTTXEN;    // packet end
                     g_usbd_ShortPacket = 0;
                 }
             }
@@ -329,45 +326,20 @@ void USBD_IRQHandler(void)
     if (IrqStL & USBD_GINTSTS_EPDIF_Msk)
     {
         IrqSt = USBD->EP[EPD].EPINTSTS & USBD->EP[EPD].EPINTEN;
-        gu32TxSize = 0;
+        gi8BulkInReady = 1;
         USBD_ENABLE_EP_INT(EPD, 0);
         USBD_CLR_EP_INT_FLAG(EPD, IrqSt);
     }
 
     if (IrqStL & USBD_GINTSTS_EPEIF_Msk)
     {
-        int volatile i, len;
+        int volatile i;
+
         IrqSt = USBD->EP[EPE].EPINTSTS & USBD->EP[EPE].EPINTEN;
-
-        if (usbRbytes >= RXBUFSIZE)
-        {
-            USBD->EP[EPE].EPRSPCTL = USBD_EPRSPCTL_DISBUF_Msk;
-            printf("!!!\n");
-        }
-        if ((usbRtail+1) == usbRhead)
-        {
-            printf("buffer full\n");
-            USBD->EP[EPE].EPRSPCTL = USBD_EPRSPCTL_FLUSH_Msk;
-            USBD_CLR_EP_INT_FLAG(EPE, IrqSt);
-            return;
-        }
         gu32RxSize = USBD->EP[EPE].EPDATCNT & 0xffff;
-        if ((gu32RxSize + usbRtail) < RXBUFSIZE)
-        {
-            for (i=0; i<gu32RxSize; i++)
-                gUsbRxBuf[usbRtail++] = USBD->EP[EPE].ep.EPDAT_BYTE;
-        }
-        else
-        {
-            len = RXBUFSIZE - usbRtail;
-            for (i=0; i<len; i++)
-                gUsbRxBuf[usbRtail++] = USBD->EP[EPE].ep.EPDAT_BYTE;
-            usbRtail = 0;
-            for (i=0; i<gu32RxSize-len; i++)
-                gUsbRxBuf[usbRtail++] = USBD->EP[EPE].ep.EPDAT_BYTE;
-        }
+        for (i=0; i<gu32RxSize; i++)
+            gUsbRxBuf[i] = USBD->EP[EPE].ep.EPDAT_BYTE;
 
-        usbRbytes += gu32RxSize;
         /* Set a flag to indicate bulk out ready */
         gi8BulkOutReady = 1;
         USBD_CLR_EP_INT_FLAG(EPE, IrqSt);

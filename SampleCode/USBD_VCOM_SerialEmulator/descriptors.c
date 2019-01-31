@@ -19,7 +19,7 @@
 uint8_t gu8DeviceDescriptor[] =
 {
 #else
-__align(4) uint8_t gu8DeviceDescriptor[] =
+uint8_t gu8DeviceDescriptor[] __attribute__((aligned(4))) =
 {
 #endif
     LEN_DEVICE,     /* bLength */
@@ -31,15 +31,15 @@ __align(4) uint8_t gu8DeviceDescriptor[] =
     CEP_MAX_PKT_SIZE,   /* bMaxPacketSize0 */
     /* idVendor */
     USBD_VID & 0x00FF,
-    (USBD_VID & 0xFF00) >> 8,
-                        /* idProduct */
-                        USBD_PID & 0x00FF,
-                        (USBD_PID & 0xFF00) >> 8,
-                        0x00, 0x03,     /* bcdDevice */
-                        0x01,           /* iManufacture */
-                        0x02,           /* iProduct */
-                        0x00,           /* iSerialNumber - no serial */
-                        0x01            /* bNumConfigurations */
+    ((USBD_VID & 0xFF00) >> 8),
+    /* idProduct */
+    USBD_PID & 0x00FF,
+    ((USBD_PID & 0xFF00) >> 8),
+    0x00, 0x03,     /* bcdDevice */
+    0x01,           /* iManufacture */
+    0x02,           /* iProduct */
+    0x00,           /* iSerialNumber - no serial */
+    0x01            /* bNumConfigurations */
 };
 
 /*!<USB Qualifier Descriptor */
@@ -48,7 +48,7 @@ __align(4) uint8_t gu8DeviceDescriptor[] =
 uint8_t gu8QualifierDescriptor[] =
 {
 #else
-__align(4) uint8_t gu8QualifierDescriptor[] =
+uint8_t gu8QualifierDescriptor[] __attribute__((aligned(4))) =
 {
 #endif
     LEN_QUALIFIER,  /* bLength */
@@ -68,7 +68,7 @@ __align(4) uint8_t gu8QualifierDescriptor[] =
 uint8_t gu8ConfigDescriptor[] =
 {
 #else
-__align(4) uint8_t gu8ConfigDescriptor[] =
+uint8_t gu8ConfigDescriptor[] __attribute__((aligned(4))) =
 {
 #endif
     LEN_CONFIG,     /* bLength              */
@@ -108,7 +108,7 @@ __align(4) uint8_t gu8ConfigDescriptor[] =
     /* Communication Class Specified INTERFACE descriptor */
     0x04,           /* Size of the descriptor, in bytes */
     0x24,           /* CS_INTERFACE descriptor type */
-    0x02,           /* Abstract control management funcational descriptor subtype */
+    0x02,           /* Abstract control management functional descriptor subtype */
     0x00,           /* bmCapabilities       */
 
     /* Communication Class Specified INTERFACE descriptor */
@@ -125,48 +125,145 @@ __align(4) uint8_t gu8ConfigDescriptor[] =
     EP_INT,                         /* bmAttributes     */
     /* wMaxPacketSize */
     EPC_MAX_PKT_SIZE & 0x00FF,
-    (EPC_MAX_PKT_SIZE & 0xFF00) >> 8,
-                                0x01,                           /* bInterval        */
+    ((EPC_MAX_PKT_SIZE & 0xFF00) >> 8),
+    0x01,                           /* bInterval        */
 
-                                /* INTERFACE descriptor */
-                                LEN_INTERFACE,  /* bLength              */
-                                DESC_INTERFACE, /* bDescriptorType      */
-                                0x01,           /* bInterfaceNumber     */
-                                0x00,           /* bAlternateSetting    */
-                                0x02,           /* bNumEndpoints        */
-                                0x0A,           /* bInterfaceClass      */
-                                0x00,           /* bInterfaceSubClass   */
-                                0x00,           /* bInterfaceProtocol   */
-                                0x00,           /* iInterface           */
+    /* INTERFACE descriptor */
+    LEN_INTERFACE,  /* bLength              */
+    DESC_INTERFACE, /* bDescriptorType      */
+    0x01,           /* bInterfaceNumber     */
+    0x00,           /* bAlternateSetting    */
+    0x02,           /* bNumEndpoints        */
+    0x0A,           /* bInterfaceClass      */
+    0x00,           /* bInterfaceSubClass   */
+    0x00,           /* bInterfaceProtocol   */
+    0x00,           /* iInterface           */
 
-                                /* ENDPOINT descriptor */
-                                LEN_ENDPOINT,                   /* bLength          */
-                                DESC_ENDPOINT,                  /* bDescriptorType  */
-                                (EP_INPUT | BULK_IN_EP_NUM),    /* bEndpointAddress */
-                                EP_BULK,                        /* bmAttributes     */
-                                /* wMaxPacketSize */
-                                EPA_MAX_PKT_SIZE & 0x00FF,
-                                (EPA_MAX_PKT_SIZE & 0xFF00) >> 8,
-                                0x00,                           /* bInterval        */
+    /* ENDPOINT descriptor */
+    LEN_ENDPOINT,                   /* bLength          */
+    DESC_ENDPOINT,                  /* bDescriptorType  */
+    (EP_INPUT | BULK_IN_EP_NUM),    /* bEndpointAddress */
+    EP_BULK,                        /* bmAttributes     */
+    /* wMaxPacketSize */
+    EPA_MAX_PKT_SIZE & 0x00FF,
+    ((EPA_MAX_PKT_SIZE & 0xFF00) >> 8),
+    0x00,                           /* bInterval        */
 
-                                /* ENDPOINT descriptor */
-                                LEN_ENDPOINT,                   /* bLength          */
-                                DESC_ENDPOINT,                  /* bDescriptorType  */
-                                (EP_OUTPUT | BULK_OUT_EP_NUM),  /* bEndpointAddress */
-                                EP_BULK,                        /* bmAttributes     */
-                                /* wMaxPacketSize */
-                                EPB_MAX_PKT_SIZE & 0x00FF,
-                                (EPB_MAX_PKT_SIZE & 0xFF00) >> 8,
-                                0x00,                           /* bInterval        */
+    /* ENDPOINT descriptor */
+    LEN_ENDPOINT,                   /* bLength          */
+    DESC_ENDPOINT,                  /* bDescriptorType  */
+    (EP_OUTPUT | BULK_OUT_EP_NUM),  /* bEndpointAddress */
+    EP_BULK,                        /* bmAttributes     */
+    /* wMaxPacketSize */
+    EPB_MAX_PKT_SIZE & 0x00FF,
+    ((EPB_MAX_PKT_SIZE & 0xFF00) >> 8),
+    0x00,                           /* bInterval        */
 };
 
 /*!<USB Other Speed Configure Descriptor */
 #ifdef __ICCARM__
 #pragma data_alignment=4
-uint8_t gu8OtherConfigDescriptor[] =
+uint8_t gu8OtherConfigDescriptorHS[] =
 {
 #else
-__align(4) uint8_t gu8OtherConfigDescriptor[] =
+uint8_t gu8OtherConfigDescriptorHS[] __attribute__((aligned(4))) =
+{
+#endif
+    LEN_CONFIG,     /* bLength              */
+    DESC_OTHERSPEED,    /* bDescriptorType      */
+    0x43, 0x00,     /* wTotalLength         */
+    0x02,           /* bNumInterfaces       */
+    0x01,           /* bConfigurationValue  */
+    0x00,           /* iConfiguration       */
+    0xC0,           /* bmAttributes         */
+    0x32,           /* MaxPower             */
+
+    /* INTERFACE descriptor */
+    LEN_INTERFACE,  /* bLength              */
+    DESC_INTERFACE, /* bDescriptorType      */
+    0x00,           /* bInterfaceNumber     */
+    0x00,           /* bAlternateSetting    */
+    0x01,           /* bNumEndpoints        */
+    0x02,           /* bInterfaceClass      */
+    0x02,           /* bInterfaceSubClass   */
+    0x01,           /* bInterfaceProtocol   */
+    0x00,           /* iInterface           */
+
+    /* Communication Class Specified INTERFACE descriptor */
+    0x05,           /* Size of the descriptor, in bytes */
+    0x24,           /* CS_INTERFACE descriptor type */
+    0x00,           /* Header functional descriptor subtype */
+    0x10, 0x01,     /* Communication device compliant to the communication spec. ver. 1.10 */
+
+    /* Communication Class Specified INTERFACE descriptor */
+    0x05,           /* Size of the descriptor, in bytes */
+    0x24,           /* CS_INTERFACE descriptor type */
+    0x01,           /* Call management functional descriptor */
+    0x00,           /* BIT0: Whether device handle call management itself. */
+    /* BIT1: Whether device can send/receive call management information over a Data Class Interface 0 */
+    0x01,           /* Interface number of data class interface optionally used for call management */
+
+    /* Communication Class Specified INTERFACE descriptor */
+    0x04,           /* Size of the descriptor, in bytes */
+    0x24,           /* CS_INTERFACE descriptor type */
+    0x02,           /* Abstract control management functional descriptor subtype */
+    0x00,           /* bmCapabilities       */
+
+    /* Communication Class Specified INTERFACE descriptor */
+    0x05,           /* bLength              */
+    0x24,           /* bDescriptorType: CS_INTERFACE descriptor type */
+    0x06,           /* bDescriptorSubType   */
+    0x00,           /* bMasterInterface     */
+    0x01,           /* bSlaveInterface0     */
+
+    /* ENDPOINT descriptor */
+    LEN_ENDPOINT,                   /* bLength          */
+    DESC_ENDPOINT,                  /* bDescriptorType  */
+    (EP_INPUT | INT_IN_EP_NUM),     /* bEndpointAddress */
+    EP_INT,                         /* bmAttributes     */
+    /* wMaxPacketSize */
+    EPC_OTHER_MAX_PKT_SIZE & 0x00FF,
+    ((EPC_OTHER_MAX_PKT_SIZE & 0xFF00) >> 8),
+    0x01,                           /* bInterval        */
+
+    /* INTERFACE descriptor */
+    LEN_INTERFACE,  /* bLength              */
+    DESC_INTERFACE, /* bDescriptorType      */
+    0x01,           /* bInterfaceNumber     */
+    0x00,           /* bAlternateSetting    */
+    0x02,           /* bNumEndpoints        */
+    0x0A,           /* bInterfaceClass      */
+    0x00,           /* bInterfaceSubClass   */
+    0x00,           /* bInterfaceProtocol   */
+    0x00,           /* iInterface           */
+
+    /* ENDPOINT descriptor */
+    LEN_ENDPOINT,                   /* bLength          */
+    DESC_ENDPOINT,                  /* bDescriptorType  */
+    (EP_INPUT | BULK_IN_EP_NUM),    /* bEndpointAddress */
+    EP_BULK,                        /* bmAttributes     */
+    /* wMaxPacketSize */
+    EPA_OTHER_MAX_PKT_SIZE & 0x00FF,
+    (EPA_OTHER_MAX_PKT_SIZE & 0xFF00) >> 8,
+    0x00,                           /* bInterval        */
+
+    /* ENDPOINT descriptor */
+    LEN_ENDPOINT,                   /* bLength          */
+    DESC_ENDPOINT,                  /* bDescriptorType  */
+    (EP_OUTPUT | BULK_OUT_EP_NUM),  /* bEndpointAddress */
+    EP_BULK,                        /* bmAttributes     */
+    /* wMaxPacketSize */
+    EPB_OTHER_MAX_PKT_SIZE & 0x00FF,
+    (EPB_OTHER_MAX_PKT_SIZE & 0xFF00) >> 8,
+    0x00,                           /* bInterval        */
+};
+
+#ifdef __ICCARM__
+#pragma data_alignment=4
+uint8_t gu8ConfigDescriptorFS[] =
+{
+#else
+uint8_t gu8ConfigDescriptorFS[] __attribute__((aligned(4))) =
 {
 #endif
     LEN_CONFIG,     /* bLength              */
@@ -206,7 +303,7 @@ __align(4) uint8_t gu8OtherConfigDescriptor[] =
     /* Communication Class Specified INTERFACE descriptor */
     0x04,           /* Size of the descriptor, in bytes */
     0x24,           /* CS_INTERFACE descriptor type */
-    0x02,           /* Abstract control management funcational descriptor subtype */
+    0x02,           /* Abstract control management functional descriptor subtype */
     0x00,           /* bmCapabilities       */
 
     /* Communication Class Specified INTERFACE descriptor */
@@ -223,40 +320,139 @@ __align(4) uint8_t gu8OtherConfigDescriptor[] =
     EP_INT,                         /* bmAttributes     */
     /* wMaxPacketSize */
     EPC_OTHER_MAX_PKT_SIZE & 0x00FF,
-    (EPC_OTHER_MAX_PKT_SIZE & 0xFF00) >> 8,
-                                      0x01,                           /* bInterval        */
+    ((EPC_OTHER_MAX_PKT_SIZE & 0xFF00) >> 8),
+    0x01,                           /* bInterval        */
 
-                                      /* INTERFACE descriptor */
-                                      LEN_INTERFACE,  /* bLength              */
-                                      DESC_INTERFACE, /* bDescriptorType      */
-                                      0x01,           /* bInterfaceNumber     */
-                                      0x00,           /* bAlternateSetting    */
-                                      0x02,           /* bNumEndpoints        */
-                                      0x0A,           /* bInterfaceClass      */
-                                      0x00,           /* bInterfaceSubClass   */
-                                      0x00,           /* bInterfaceProtocol   */
-                                      0x00,           /* iInterface           */
+    /* INTERFACE descriptor */
+    LEN_INTERFACE,  /* bLength              */
+    DESC_INTERFACE, /* bDescriptorType      */
+    0x01,           /* bInterfaceNumber     */
+    0x00,           /* bAlternateSetting    */
+    0x02,           /* bNumEndpoints        */
+    0x0A,           /* bInterfaceClass      */
+    0x00,           /* bInterfaceSubClass   */
+    0x00,           /* bInterfaceProtocol   */
+    0x00,           /* iInterface           */
 
-                                      /* ENDPOINT descriptor */
-                                      LEN_ENDPOINT,                   /* bLength          */
-                                      DESC_ENDPOINT,                  /* bDescriptorType  */
-                                      (EP_INPUT | BULK_IN_EP_NUM),    /* bEndpointAddress */
-                                      EP_BULK,                        /* bmAttributes     */
-                                      /* wMaxPacketSize */
-                                      EPA_OTHER_MAX_PKT_SIZE & 0x00FF,
-                                      (EPA_OTHER_MAX_PKT_SIZE & 0xFF00) >> 8,
-                                      0x00,                           /* bInterval        */
+    /* ENDPOINT descriptor */
+    LEN_ENDPOINT,                   /* bLength          */
+    DESC_ENDPOINT,                  /* bDescriptorType  */
+    (EP_INPUT | BULK_IN_EP_NUM),    /* bEndpointAddress */
+    EP_BULK,                        /* bmAttributes     */
+    /* wMaxPacketSize */
+    EPA_OTHER_MAX_PKT_SIZE & 0x00FF,
+    ((EPA_OTHER_MAX_PKT_SIZE & 0xFF00) >> 8),
+    0x00,                           /* bInterval        */
 
-                                      /* ENDPOINT descriptor */
-                                      LEN_ENDPOINT,                   /* bLength          */
-                                      DESC_ENDPOINT,                  /* bDescriptorType  */
-                                      (EP_OUTPUT | BULK_OUT_EP_NUM),  /* bEndpointAddress */
-                                      EP_BULK,                        /* bmAttributes     */
-                                      /* wMaxPacketSize */
-                                      EPB_OTHER_MAX_PKT_SIZE & 0x00FF,
-                                      (EPB_OTHER_MAX_PKT_SIZE & 0xFF00) >> 8,
-                                      0x00,                           /* bInterval        */
+    /* ENDPOINT descriptor */
+    LEN_ENDPOINT,                   /* bLength          */
+    DESC_ENDPOINT,                  /* bDescriptorType  */
+    (EP_OUTPUT | BULK_OUT_EP_NUM),  /* bEndpointAddress */
+    EP_BULK,                        /* bmAttributes     */
+    /* wMaxPacketSize */
+    EPB_OTHER_MAX_PKT_SIZE & 0x00FF,
+    ((EPB_OTHER_MAX_PKT_SIZE & 0xFF00) >> 8),
+    0x00,                           /* bInterval        */
 };
+
+/*!<USB Other Speed Configure Descriptor */
+#ifdef __ICCARM__
+#pragma data_alignment=4
+uint8_t gu8OtherConfigDescriptorFS[] =
+{
+#else
+uint8_t gu8OtherConfigDescriptorFS[] __attribute__((aligned(4))) =
+{
+#endif
+    LEN_CONFIG,     /* bLength              */
+    DESC_OTHERSPEED,    /* bDescriptorType      */
+    0x43, 0x00,     /* wTotalLength         */
+    0x02,           /* bNumInterfaces       */
+    0x01,           /* bConfigurationValue  */
+    0x00,           /* iConfiguration       */
+    0xC0,           /* bmAttributes         */
+    0x32,           /* MaxPower             */
+
+    /* INTERFACE descriptor */
+    LEN_INTERFACE,  /* bLength              */
+    DESC_INTERFACE, /* bDescriptorType      */
+    0x00,           /* bInterfaceNumber     */
+    0x00,           /* bAlternateSetting    */
+    0x01,           /* bNumEndpoints        */
+    0x02,           /* bInterfaceClass      */
+    0x02,           /* bInterfaceSubClass   */
+    0x01,           /* bInterfaceProtocol   */
+    0x00,           /* iInterface           */
+
+    /* Communication Class Specified INTERFACE descriptor */
+    0x05,           /* Size of the descriptor, in bytes */
+    0x24,           /* CS_INTERFACE descriptor type */
+    0x00,           /* Header functional descriptor subtype */
+    0x10, 0x01,     /* Communication device compliant to the communication spec. ver. 1.10 */
+
+    /* Communication Class Specified INTERFACE descriptor */
+    0x05,           /* Size of the descriptor, in bytes */
+    0x24,           /* CS_INTERFACE descriptor type */
+    0x01,           /* Call management functional descriptor */
+    0x00,           /* BIT0: Whether device handle call management itself. */
+    /* BIT1: Whether device can send/receive call management information over a Data Class Interface 0 */
+    0x01,           /* Interface number of data class interface optionally used for call management */
+
+    /* Communication Class Specified INTERFACE descriptor */
+    0x04,           /* Size of the descriptor, in bytes */
+    0x24,           /* CS_INTERFACE descriptor type */
+    0x02,           /* Abstract control management functional descriptor subtype */
+    0x00,           /* bmCapabilities       */
+
+    /* Communication Class Specified INTERFACE descriptor */
+    0x05,           /* bLength              */
+    0x24,           /* bDescriptorType: CS_INTERFACE descriptor type */
+    0x06,           /* bDescriptorSubType   */
+    0x00,           /* bMasterInterface     */
+    0x01,           /* bSlaveInterface0     */
+
+    /* ENDPOINT descriptor */
+    LEN_ENDPOINT,                   /* bLength          */
+    DESC_ENDPOINT,                  /* bDescriptorType  */
+    (EP_INPUT | INT_IN_EP_NUM),     /* bEndpointAddress */
+    EP_INT,                         /* bmAttributes     */
+    /* wMaxPacketSize */
+    EPC_MAX_PKT_SIZE & 0x00FF,
+    ((EPC_MAX_PKT_SIZE & 0xFF00) >> 8),
+    0x01,                           /* bInterval        */
+
+    /* INTERFACE descriptor */
+    LEN_INTERFACE,  /* bLength              */
+    DESC_INTERFACE, /* bDescriptorType      */
+    0x01,           /* bInterfaceNumber     */
+    0x00,           /* bAlternateSetting    */
+    0x02,           /* bNumEndpoints        */
+    0x0A,           /* bInterfaceClass      */
+    0x00,           /* bInterfaceSubClass   */
+    0x00,           /* bInterfaceProtocol   */
+    0x00,           /* iInterface           */
+
+    /* ENDPOINT descriptor */
+    LEN_ENDPOINT,                   /* bLength          */
+    DESC_ENDPOINT,                  /* bDescriptorType  */
+    (EP_INPUT | BULK_IN_EP_NUM),    /* bEndpointAddress */
+    EP_BULK,                        /* bmAttributes     */
+    /* wMaxPacketSize */
+    EPA_MAX_PKT_SIZE & 0x00FF,
+    ((EPA_MAX_PKT_SIZE & 0xFF00) >> 8),
+    0x00,                           /* bInterval        */
+
+    /* ENDPOINT descriptor */
+    LEN_ENDPOINT,                   /* bLength          */
+    DESC_ENDPOINT,                  /* bDescriptorType  */
+    (EP_OUTPUT | BULK_OUT_EP_NUM),  /* bEndpointAddress */
+    EP_BULK,                        /* bmAttributes     */
+    /* wMaxPacketSize */
+    EPB_MAX_PKT_SIZE & 0x00FF,
+    ((EPB_MAX_PKT_SIZE & 0xFF00) >> 8),
+    0x00,                           /* bInterval        */
+};
+
 
 
 /*!<USB Language String Descriptor */
@@ -265,7 +461,7 @@ __align(4) uint8_t gu8OtherConfigDescriptor[] =
 uint8_t gu8StringLang[] =
 {
 #else
-__align(4) uint8_t gu8StringLang[] =
+uint8_t gu8StringLang[4] __attribute__((aligned(4))) =
 {
 #endif
     4,              /* bLength */
@@ -279,7 +475,7 @@ __align(4) uint8_t gu8StringLang[] =
 uint8_t gu8VendorStringDesc[] =
 {
 #else
-__align(4) uint8_t gu8VendorStringDesc[] =
+uint8_t gu8VendorStringDesc[] __attribute__((aligned(4))) =
 {
 #endif
     16,
@@ -293,7 +489,7 @@ __align(4) uint8_t gu8VendorStringDesc[] =
 uint8_t gu8ProductStringDesc[] =
 {
 #else
-__align(4) uint8_t gu8ProductStringDesc[] =
+uint8_t gu8ProductStringDesc[] __attribute__((aligned(4))) =
 {
 #endif
     32,             /* bLength          */
@@ -329,7 +525,9 @@ S_USBD_INFO_T gsInfo =
     gu8ConfigDescriptor,
     gpu8UsbString,
     gu8QualifierDescriptor,
-    gu8OtherConfigDescriptor,
+    gu8ConfigDescriptorFS,
+    gu8OtherConfigDescriptorHS,
+    gu8OtherConfigDescriptorFS,
     gu8UsbHidReport,
     gu32UsbHidReportLen,
 };

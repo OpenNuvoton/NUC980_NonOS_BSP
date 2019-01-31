@@ -159,7 +159,9 @@ typedef struct s_usbd_info
     uint8_t *gu8ConfigDesc;         /*!< Config descriptor */
     uint8_t **gu8StringDesc;        /*!< Pointer for USB String Descriptor pointers */
     uint8_t *gu8QualDesc;           /*!< Qualifier descriptor */
-    uint8_t *gu8OtherConfigDesc;    /*!< Other Speed Config descriptor */
+    uint8_t *gu8FullConfigDesc;     /*!< Full Speed Config descriptor */
+    uint8_t *gu8HSOtherConfigDesc;  /*!< Other Speed Config descriptor */
+    uint8_t *gu8FSOtherConfigDesc;  /*!< Other Speed Config descriptor */
     uint8_t **gu8HidReportDesc;     /*!< Pointer for HID Report descriptor */
     uint32_t *gu32HidReportSize;    /*!< Pointer for HID Report descriptor Size */
 
@@ -808,7 +810,7 @@ static __inline void USBD_SetEpStall(uint32_t u32Ep)
         USBD_SET_CEP_STATE(USB_CEPCTL_STALL);
     else
     {
-        USBD->EP[u32Ep].EPRSPCTL = USBD->EP[u32Ep].EPRSPCTL & 0xf7 | USB_EP_RSPCTL_HALT;
+        USBD->EP[u32Ep].EPRSPCTL = (USBD->EP[u32Ep].EPRSPCTL & 0xf7) | USB_EP_RSPCTL_HALT;
     }
 }
 

@@ -131,7 +131,7 @@ int32_t main (void)
     sysFlushCache(I_D_CACHE);
     sysEnableCache(CACHE_WRITE_BACK);
     UART_Init();
-    printf("\n");
+    printf("\n\n\n\n");
     printf("==========================\n");
     printf("     USB Mass Storage     \n");
     printf("==========================\n");
@@ -176,7 +176,7 @@ int32_t main (void)
 
     while(1)
     {
-        if (g_u8MscStart)
+        if (g_usbd_Configured)
             MSC_ProcessCmd();
     }
 }
