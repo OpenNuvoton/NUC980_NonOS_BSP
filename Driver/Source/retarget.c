@@ -100,21 +100,19 @@ label:
     goto label;  /* No where to go, endless loop */
 }
 
+#pragma import(__use_two_region_memory)
 extern unsigned int Image$$ARM_LIB_HEAP$$ZI$$Base;
 extern unsigned int Image$$ARM_LIB_HEAP$$ZI$$Limit;
-__value_in_regs struct R0_R3
-{
-    unsigned heap_base, stack_base, heap_limit, stack_limit;
-}
-__user_setup_stackheap(unsigned int R0, unsigned int SP, unsigned int R2, unsigned int SL)
+
+__value_in_regs struct __initial_stackheap __user_initial_stackheap(unsigned int R0, unsigned int SP, unsigned int R2, unsigned int SL)
 
 {
-    struct R0_R3 config;
+    struct __initial_stackheap config;
 
     config.heap_base = (unsigned int)&Image$$ARM_LIB_HEAP$$ZI$$Base;
     config.heap_limit =(unsigned int)&Image$$ARM_LIB_HEAP$$ZI$$Limit;
     config.stack_base = SP;
-
+    config.heap_limit = SP - 0x10000;
     return config;
 }
 /// @endcond HIDDEN_SYMBOLS
