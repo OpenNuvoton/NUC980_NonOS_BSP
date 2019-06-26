@@ -30,7 +30,7 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>FATFS</name>
+			<name>FatFs</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
@@ -45,9 +45,9 @@
 			<locationURI>PARENT-3-PROJECT_LOC/Driver/Source</locationURI>
 		</link>
 		<link>
-			<name>FATFS/src</name>
+			<name>FatFs/src</name>
 			<type>2</type>
-			<locationURI>$%7BPARENT-3-PROJECT_LOC%7D/ThirdParty/FATFS/src</locationURI>
+			<locationURI>$%7BPARENT-3-PROJECT_LOC%7D/ThirdParty/FatFs/src</locationURI>
 		</link>
 		<link>
 			<name>Src/SDGlue.c</name>
@@ -212,7 +212,7 @@
 		</filter>
 		<filter>
 			<id>1556852752984</id>
-			<name>FATFS/src</name>
+			<name>FatFs/src</name>
 			<type>5</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
@@ -221,7 +221,7 @@
 		</filter>
 		<filter>
 			<id>1556852752997</id>
-			<name>FATFS/src</name>
+			<name>FatFs/src</name>
 			<type>10</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
