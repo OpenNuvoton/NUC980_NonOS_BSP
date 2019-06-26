@@ -222,7 +222,7 @@ UINT32 sysGetClock(CLK_Type clk);
 
 typedef void (*sys_pvFunPtr)();   /* function pointer */
 extern sys_pvFunPtr sysIrqHandlerTable[];
-extern BOOL volatile _sys_bIsAICInitial;
+extern UINT32 volatile _sys_bIsAICInitial;
 
 #ifdef __cplusplus
 }

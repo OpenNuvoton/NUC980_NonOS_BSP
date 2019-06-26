@@ -7,8 +7,8 @@
  *
  */
 #include "common.h"
-#include "linux\mtd\nand.h"
-#include "linux\sizes.h"
+#include "linux/mtd/nand.h"
+#include "linux/sizes.h"
 
 #define LP_OPTIONS NAND_SAMSUNG_LP_OPTIONS
 #define LP_OPTIONS16 (LP_OPTIONS | NAND_BUSWIDTH_16)

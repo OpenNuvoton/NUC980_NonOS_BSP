@@ -8,9 +8,8 @@
  * @note
  * Copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
  ******************************************************************************/
-#include <stdio.h>
 #include <string.h>
-#include "NUC980.h"
+#include "nuc980.h"
 #include "sys.h"
 #include "usbd.h"
 #include "sdh.h"
@@ -32,7 +31,7 @@ uint16_t gCtrlSignal = 0;     /* BIT0: DTR(Data Terminal Ready) , BIT1: RTS(Requ
 #pragma data_alignment=4
 uint8_t gUsbRxBuf[64] = {0};
 #else
-__align(4) uint8_t gUsbRxBuf[64] = {0};
+uint8_t gUsbRxBuf[64] __attribute__((aligned(4))) = {0};
 #endif
 
 uint32_t gu32RxSize = 0;

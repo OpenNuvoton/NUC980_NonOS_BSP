@@ -200,6 +200,8 @@ static void nuvoton_nand_command(struct mtd_info *mtd, unsigned int command, int
         }
     }
 
+    if ( chip->chip_delay )
+        for (i=0; i<chip->chip_delay; i++);
     while (!(inpw(REG_NANDINTSTS) & READYBUSY)) ;
 
 }

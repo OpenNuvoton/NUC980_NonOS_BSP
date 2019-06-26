@@ -12,11 +12,22 @@
 /*---------------------------------------------------------------------------------------------------------*/
 /*  Function for System Entry to Power Down Mode                                                           */
 /*---------------------------------------------------------------------------------------------------------*/
+#if defined ( __GNUC__ ) && !(__CC_ARM)
+void  __wfi(void)
+{
+	asm
+	(
+			"MCR p15, 0, r1, c7, c0, 4\n"
+	);
+}
+#else
 __asm void __wfi()
 {
     MCR p15, 0, r1, c7, c0, 4
     BX            lr
 }
+#endif
+
 void PowerDownFunction(void)
 {
     uint32_t i;

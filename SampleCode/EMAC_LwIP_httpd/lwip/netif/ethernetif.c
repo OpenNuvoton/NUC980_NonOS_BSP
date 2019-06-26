@@ -337,12 +337,10 @@ ethernetif_input0(u16_t len, u8_t *buf)
     struct eth_hdr *ethhdr;
     struct pbuf *p;
 
-
     /* move received packet into a new pbuf */
     p = low_level_input(NULL, len, buf);
     /* no packet could be read, silently ignore this */
     if (p == NULL) return;
-
 
     /* points to packet payload, which starts with an Ethernet header */
     ethhdr = p->payload;

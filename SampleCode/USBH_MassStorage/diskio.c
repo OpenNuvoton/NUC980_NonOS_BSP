@@ -26,7 +26,7 @@
 #define USBH_DRIVE_4    7        /* USB Mass Storage */
 
 
-static __align(32) BYTE  fatfs_win_buff_pool[_MAX_SS] ;       /* FATFS window buffer is cachable. Must not use it directly. */
+static BYTE  fatfs_win_buff_pool[_MAX_SS] __attribute__((aligned(32)));       /* FATFS window buffer is cachable. Must not use it directly. */
 BYTE  *fatfs_win_buff;
 
 

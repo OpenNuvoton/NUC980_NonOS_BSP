@@ -233,7 +233,11 @@ uint32_t mpShiftRight(uint32_t a[], const uint32_t b[], int shift, int ndigits)
 uint32_t spDivide(uint32_t *pq, uint32_t *pr, const uint32_t u[2], uint32_t v)
 {
     uint64_t uu, q;
-    uu = (uint64_t)u[1] << 32 | (uint64_t)u[0];
+    
+    uu = u[1];
+    uu <<= 32;
+    uu |= (uint64_t)u[0];
+    
     q = uu / (uint64_t)v;
     //r = uu % (uint64_t)v;
     *pr = (uint32_t)(uu - q * v);
@@ -248,7 +252,6 @@ int spMultiply(uint32_t p[2], uint32_t x, uint32_t y)
     /* then split into two parts */
     p[1] = (uint32_t)(t >> 32);
     p[0] = (uint32_t)(t & 0xFFFFFFFF);
-
     return 0;
 }
 
@@ -573,7 +576,7 @@ int mpModulo(uint32_t r[], const uint32_t u[], int udigits,
     	printf("Error!! mpModulo nn overflow!\n");
     	return -1;
     }
-
+    
     /* rr[nn] = u mod v */
     mpDivide(qq, rr, u, udigits, v, vdigits);
 

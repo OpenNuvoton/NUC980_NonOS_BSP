@@ -29,7 +29,7 @@
 #endif
 
 /* web page*/
-static CHAR index[] =
+static CHAR idx[] =
 {
     0x48, 0x54, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x30, 0x20, 0x32,
     0x30, 0x30, 0x20, 0x4f, 0x4b, 0xd, 0xa, 0x53, 0x65, 0x72,
@@ -97,7 +97,7 @@ static err_t http_recv(void *arg, struct tcp_pcb *pcb, struct pbuf*p, err_t err)
             in the last argument means that the data should
             not be copied into internal buffers. */
             tcp_recved(pcb, p->tot_len);
-            tcp_write(pcb, index, sizeof(index) -1, 0);
+            tcp_write(pcb, idx, sizeof(idx) -1, 0);
             tcp_close(pcb);
         }
         else
@@ -147,12 +147,10 @@ struct netif netif1;
 uint32_t sysTick = 0;
 void ETMR0_IRQHandler(void)
 {
-
     sysTick++;
     // clear timer interrupt flag
     ETIMER_ClearIntFlag(0);
 }
-
 
 
 /* network initialization function.*/

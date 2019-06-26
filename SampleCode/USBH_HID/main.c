@@ -18,7 +18,7 @@
 #include "usbh_hid.h"
 
 
-__align(32) uint32_t   g_buff_pool[1024];
+uint32_t  g_buff_pool[1024] __attribute__((aligned(32)));
 
 
 volatile uint32_t  _timer_tick;

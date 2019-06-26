@@ -22,7 +22,7 @@ void SC0_IRQHandler(void)
     // Print SCUART received data to UART port
     // Data length here is short, so we're not care about UART FIFO over flow.
     printf("%c", SCUART_READ(0));
-
+    fflush(stdout);
     // RDA is the only interrupt enabled in this sample, this status bit
     // automatically cleared after Rx FIFO empty. So no need to clear interrupt
     // status here.

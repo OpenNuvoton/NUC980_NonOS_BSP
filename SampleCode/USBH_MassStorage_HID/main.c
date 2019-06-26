@@ -31,12 +31,12 @@ char Line[256];                         /* Console input buffer */
 char Lfname[512];
 #endif
 
-__align(32) BYTE Buff_Pool[BUFF_SIZE] ;       /* Working buffer */
+BYTE Buff_Pool[BUFF_SIZE] __attribute__((aligned(32)));       /* Working buffer */
 
 BYTE  *Buff;
 
 
-__align(32) uint32_t   g_hid_buff_pool[1024];
+uint32_t   g_hid_buff_pool[1024] __attribute__((aligned(32)));
 
 HID_DEV_T   *g_hid_list[CONFIG_HID_MAX_DEV];
 

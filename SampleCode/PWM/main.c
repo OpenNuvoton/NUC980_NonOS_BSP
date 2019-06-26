@@ -17,7 +17,6 @@ void show_menu(void);
 INT PWM_Timer(INT timer_num);
 INT PWM_TimerDZ(INT dz_num);
 
-extern int recvchar(void);
 
 /*-----------------------------------------------------------------------------*/
 void UART_Init()
@@ -50,7 +49,7 @@ int main (void)
     while(1)
     {
         show_menu();
-        item = recvchar();// Get user key
+        item = getchar();// Get user key
         switch(item)
         {
         case '0':
@@ -199,7 +198,7 @@ INT PWM_Timer(INT timer_num)
     pwmIoctl(timer_num, STOP_PWMTIMER, 0, 0);
     pwmClose(timer_num);
     printf("\nPWM Timer %d test finish\nPress any key to continue....", timer_num);
-    recvchar();
+    getchar();
     return Successful;
 }
 
@@ -234,7 +233,7 @@ INT PWM_TimerDZ(INT timer_num)
     pwmIoctl(timer_num+1, START_PWMTIMER, 0, 0);
 
     printf("Hit any key to quit\n");
-    recvchar();
+    getchar();
     pwmIoctl(timer_num, STOP_PWMTIMER, 0, 0);
     pwmIoctl(timer_num+1, STOP_PWMTIMER, 0, 0);
     pwmClose(timer_num);

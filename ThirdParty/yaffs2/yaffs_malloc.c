@@ -19,6 +19,7 @@
  * This version now uses the ydevconfig mechanism to set up partitions.
  */
 
+#include "stdio.h"
 #include "malloc.h"
 
 //unsigned yaffs_trace_mask = 0; /* Disable logging */
@@ -37,7 +38,7 @@ typedef struct YAFFS_mhdr
 	unsigned int  reserved;
 }  YAFFS_MHDR_T;
 
-__align(YAFFS_MEM_BLOCK_SIZE) unsigned char  _YAFFSMemoryPool[YAFFS_MEMORY_POOL_SIZE];
+unsigned char  _YAFFSMemoryPool[YAFFS_MEMORY_POOL_SIZE] __attribute__((aligned(YAFFS_MEM_BLOCK_SIZE)));
 
 static YAFFS_MHDR_T  *_pCurrent;
 static unsigned int  _FreeMemorySize;
@@ -70,7 +71,7 @@ void *yaffs_malloc(size_t size)
 	if (size >= _FreeMemorySize)
 	{
 		printf("yaffs_malloc - want=%d, free=%d\n", size, _FreeMemorySize);
-		return NULL;
+		return 0;
 	}
 
 	if ((unsigned int)_pCurrent >= _MemoryPoolEnd)
@@ -151,7 +152,7 @@ void *yaffs_malloc(size_t size)
 	} while ((wrap == 0) || (_pCurrent < pPrimitivePos));
 	   
 	printf("yaffs_malloc - No free memory!\n");
-	return NULL;
+	return 0;
 }
 
 void yaffs_free(void *ptr)

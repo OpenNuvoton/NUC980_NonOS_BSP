@@ -28,8 +28,7 @@ static u8_t rx_buf[RX_DESCRIPTOR_NUM][PACKET_BUFFER_SIZE];
 static u8_t tx_buf[TX_DESCRIPTOR_NUM][PACKET_BUFFER_SIZE];
 static int plugged = 0;
 
-extern void ethernetif_input(u16_t len, u8_t *buf);
-extern void ethernetif_loopback_input(struct pbuf *p);
+extern void ethernetif_input0(u16_t len, u8_t *buf);
 
 /* Write PHY register */
 static void mdio_write(u8_t addr, u8_t reg, u16_t val)
@@ -200,15 +199,12 @@ void ETH0_RX_IRQHandler(void)
     {
         status = cur_rx_desc_ptr->status1;
 
-        if(status & OWNERSHIP_EMAC)
+        if(status & OWNERSHIP_EMAC) {
             break;
-
+        }
         if (status & RXFD_RXGD)
         {
-
             ethernetif_input0(status & 0xFFFF, cur_rx_desc_ptr->buf);
-
-
         }
 
         cur_rx_desc_ptr->status1 = OWNERSHIP_EMAC;
@@ -238,7 +234,6 @@ void ETH0_TX_IRQHandler(void)
 
     while (cur_entry != (u32_t)fin_tx_desc_ptr)
     {
-
         fin_tx_desc_ptr = fin_tx_desc_ptr->next;
     }
 
@@ -287,7 +282,7 @@ void ETH0_init(u8_t *mac_addr)
 
     init_tx_desc();
     init_rx_desc();
-
+    sysFlushCache(D_CACHE);
     set_mac_addr(mac_addr);  // need to reconfigure hardware address 'cos we just RESET emc...
     reset_phy();
 

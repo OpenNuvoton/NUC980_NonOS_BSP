@@ -9,7 +9,7 @@
 #define __DESCRIPTORS_C__
 
 /*!<Includes */
-#include "NUC980.h"
+#include "nuc980.h"
 #include "usbd.h"
 #include "hid_mouse.h"
 

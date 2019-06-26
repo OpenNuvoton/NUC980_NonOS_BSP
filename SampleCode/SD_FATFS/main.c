@@ -4,6 +4,7 @@
  *
  * @copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
 *****************************************************************************/
+#include <stdio.h>
 #include <string.h>
 
 #include "nuc980.h"
@@ -25,7 +26,11 @@ char Line[256];                         /* Console input buffer */
 char Lfname[512];
 #endif
 
+#if defined (__GNUC__) && !(__CC_ARM)
+__attribute__((aligned(32))) BYTE Buff_Pool[BUFF_SIZE] ;       /* Working buffer */
+#else
 __align(32) BYTE Buff_Pool[BUFF_SIZE] ;       /* Working buffer */
+#endif
 
 BYTE  *Buff;
 
@@ -252,6 +257,7 @@ void get_line (char *buff, int len)
     {
         c = getchar();
         putchar(c);
+        fflush(stdout);
         if (c == '\r') break;
         if ((c == '\b') && idx) idx--;
         if ((c >= ' ') && (idx < len - 1)) buff[idx++] = c;
@@ -259,7 +265,7 @@ void get_line (char *buff, int len)
     buff[idx] = 0;
 
     putchar('\n');
-
+    fflush(stdout);
 }
 
 unsigned int volatile gCardInit = 0;
@@ -438,6 +444,7 @@ int32_t main(void)
             continue;
 
         printf(_T(">"));
+        fflush(stdout);
         ptr = Line;
         get_line(ptr, sizeof(Line));
         switch (*ptr++)

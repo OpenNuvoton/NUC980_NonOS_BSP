@@ -14,7 +14,6 @@
 #include "sys.h"
 #include "adc.h"
 
-extern int recvchar(void);
 /*-----------------------------------------------------------------------------*/
 volatile int normal_complete=0;
 INT32 NormalConvCallback(UINT32 status, UINT32 userData)
@@ -30,7 +29,7 @@ void normal_demo()
     char c;
     int val;
     printf("Select channel 0 ~ 8 (0~7 for external channel, 8 for Vref)\n");
-    c = recvchar();
+    c = getchar();
     val = c - '0';
     adcIoctl(NAC_ON,(UINT32)NormalConvCallback,0); //Enable Normal AD Conversion
     adcChangeChannel(val << ADC_CONF_CHSEL_Pos);

@@ -8,7 +8,7 @@
  * Copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
  ******************************************************************************/
 /*!<Includes */
-#include "NUC980.h"
+#include "nuc980.h"
 #include "usbd.h"
 #include "vcom_serial.h"
 

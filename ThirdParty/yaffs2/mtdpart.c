@@ -20,15 +20,15 @@
 
 #include "common.h"
 #include "malloc.h"
-#include "linux\errno.h"
-#include "linux\compat.h"
-#include "linux\types.h"
-#include "linux\list.h"
-//#include "ubi_uboot.h"
+#include "linux/errno.h"
+#include "linux/compat.h"
+#include "linux/types.h"
+#include "linux/list.h"
+#include "linux/string.h"
 
-#include "linux\mtd\mtd.h"
-#include "linux\mtd\partitions.h"
-#include "linux\err.h"
+#include "linux/mtd/mtd.h"
+#include "linux/mtd/partitions.h"
+#include "linux/err.h"
 
 #include "mtdcore.h"
 #include "yaffs_malloc.h"

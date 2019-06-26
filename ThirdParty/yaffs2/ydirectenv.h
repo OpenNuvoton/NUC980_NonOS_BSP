@@ -26,6 +26,7 @@
 #include "yaffs_osglue.h"
 #include "yaffs_hweight.h"
 
+extern void qsort(void *base, size_t nmemb, size_t size, int(*compar)(const void *, const void *));
 void yaffs_bug_fn(const char *file_name, int line_no);
 
 //#define BUG() do { yaffs_bug_fn(__FILE__, __LINE__); } while (0)

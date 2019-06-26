@@ -1543,7 +1543,7 @@ int mbedtls_mpi_mod_int( mbedtls_mpi_uint *r, const mbedtls_mpi *A, mbedtls_mpi_
 
 #include "bigdigits.c"
 
-#define Hardware_length   (2096)
+#define Hardware_length   (RSA_MAX_KLEN)
 
 uint32_t  C_t[(2096*2)/32];
 uint32_t  N_t[(2096*2)/32];
@@ -1720,6 +1720,7 @@ void RSA_CS(int length, char *rsa_N, char *rsa_C)
 
     // convert uint32_t to char
     nbits = (int)mpBitLength(C_t, word_size);
+
     for (i = Hardware_length; i >= 0; i--) 
     {
         if (i > nbits) 
@@ -1730,6 +1731,7 @@ void RSA_CS(int length, char *rsa_N, char *rsa_C)
             C[i] = v ? 1 : 0;
         }
     }
+
     RSA_Binary2Hex(length, C, rsa_C);
     return;
 }
@@ -1790,9 +1792,9 @@ int mbedtls_mpi_exp_mod(mbedtls_mpi *X, const mbedtls_mpi *A, const mbedtls_mpi 
     RSA_Hex2Reg(str_buff, (uint32_t *)&CRPT->RSA_N[0], hex_len);
     //printf("N = %s [%d]\n", str_buff, wlen);
 
-    memset(str_C, 0, sizeof(str_C));
-
     RSA_CS(g_rsa_len, str_buff, str_C);
+
+    //printf("str_C = %s\n", str_C);
     
     RSA_Hex2Reg(str_C, (uint32_t *)&CRPT->RSA_C[0], hex_len);
     
@@ -1804,7 +1806,7 @@ int mbedtls_mpi_exp_mod(mbedtls_mpi *X, const mbedtls_mpi *A, const mbedtls_mpi 
 
     mbedtls_mpi_read_string(X, 16, str_buff);
 
-    // printf("X = %s\n", str_buff);
+    //printf("X = %s\n", str_buff);
     return 0;
 }
 

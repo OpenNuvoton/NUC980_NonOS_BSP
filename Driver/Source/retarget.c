@@ -6,10 +6,13 @@
  *****************************************************************************/
 #include <stdio.h>
 #include <stdio.h>
+#if defined (__CC_ARM)
 #include <rt_misc.h>
+#endif
 #include "nuc980.h"
 #include "sys.h"
 
+#if defined (__CC_ARM)
 
 #pragma import(__use_no_semihosting_swi)
 /// @cond HIDDEN_SYMBOLS
@@ -23,6 +26,11 @@ int sendchar(int ch)
         outpw(REG_UART0_THR, '\r');
     }
     return (ch);
+}
+
+static void flush_uart(void)
+{
+    while(inpw(REG_UART0_FSR) & (1<<23));  //waits for TX_FULL bit is clear
 }
 
 /**
@@ -61,6 +69,12 @@ FILE __stdout;
 FILE __stdin;
 FILE __stderr;
 
+int fflush(FILE *f)
+{
+    flush_uart();
+    return 0;
+}
+
 int fputc(int ch, FILE *f)
 {
     return (sendchar(ch));
@@ -76,10 +90,6 @@ int fclose(FILE* f) {
 }
 
 int fseek (FILE *f, long nPos, int nMode)  {
-  return (0);
-}
-
-int fflush (FILE *f)  {
   return (0);
 }
 
@@ -116,4 +126,84 @@ __value_in_regs struct __initial_stackheap __user_initial_stackheap(unsigned int
     return config;
 }
 /// @endcond HIDDEN_SYMBOLS
+
+#else  // expect defined(__GNUC__)
+
+#include "uart.h"
+
+/// @cond HIDDEN_SYMBOLS
+
+int kbhit(void)
+{
+    return !((inpw(REG_UART0_FSR) & (1 << 14)) == 0);
+}
+
+int _write (int fd, char *ptr, int len)
+{
+    int i = len;
+
+    while(i--)
+    {
+        while ((inpw(REG_UART0_FSR) & (1<<23))); //waits for TX_FULL bit is clear
+
+        outpw(REG_UART0_THR, *ptr);
+
+        if(*ptr == '\n')
+        {
+            while ((inpw(REG_UART0_FSR) & (1<<23)));
+            outpw(REG_UART0_THR, '\r');
+        }
+
+        ptr++;
+
+    }
+    return len;
+}
+
+int _read (int fd, char *ptr, int len)
+{
+    while( (inpw(REG_UART0_FSR) & (1 << 14)) != 0);  // waits RX not empty
+    *ptr = inpw(REG_UART0_RBR);
+
+    return 1;
+}
+
+void C_SWI_Handler( int swi_num, int *regs )
+{
+    switch( swi_num )
+    {
+    case 0:
+        regs[0] = regs[0] * regs[1];
+        break;
+    case 1:
+        regs[0] = regs[0] + regs[1];
+        break;
+    case 2:
+        regs[0] = (regs[0] * regs[1]) + (regs[2] * regs[3]);
+        break;
+    case 3:
+    {
+        int w, x, y, z;
+
+        w = regs[0];
+        x = regs[1];
+        y = regs[2];
+        z = regs[3];
+
+        regs[0] = w + x + y + z;
+        regs[1] = w - x - y - z;
+        regs[2] = w * x * y * z;
+        regs[3] =(w + x) * (y - z);
+    }
+    break;
+    }
+}
+
+/// @endcond HIDDEN_SYMBOLS
+#endif
+
+
+
+
+
 

@@ -9,7 +9,7 @@
  * Copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
  ******************************************************************************/
 #include <stdio.h>
-#include "NUC980.h"
+#include "nuc980.h"
 #include "sys.h"
 #include "usbd.h"
 #include "massstorage.h"
@@ -32,20 +32,6 @@ void UART_Init()
     outpw(REG_UART0_BAUD, 0x30000066); /* 12MHz reference clock input, 115200 */
 }
 
-__asm void __wfi()
-{
-    MCR p15, 0, r1, c7, c0, 4
-    BX  lr
-}
-
-void power_down()
-{
-    *(volatile unsigned int *)(0xB0000200) &= 0xFFFFFFFE;
-    *(unsigned int volatile *)(0xB00001FC) = 0;
-    __wfi();
-}
-
-
 /*---------------------------------------------------------------------------------------------------------*/
 /*  Main Function                                                                                          */
 /*---------------------------------------------------------------------------------------------------------*/
@@ -64,11 +50,12 @@ int32_t main (void)
 
     outpw(REG_SYS_WKUPSER1, inpw(REG_SYS_WKUPSER1)|0x80000);
     sysInstallISR(IRQ_LEVEL_1, IRQ_UDC, (PVOID)USBD_IRQHandler);
+
+    USBD_Open(&gsInfo, MSC_ClassRequest, NULL);
+
     /* enable CPSR I bit */
     sysSetLocalInterrupt(ENABLE_IRQ);
     sysEnableInterrupt(IRQ_UDC);
-
-    USBD_Open(&gsInfo, MSC_ClassRequest, NULL);
 
     /* Endpoint configuration */
     MSC_Init();
@@ -80,20 +67,6 @@ int32_t main (void)
         {
             USBD_Start();
             break;
-        }
-        else
-        {
-            outpw(REG_USBD_PHYCTL, (inpw(REG_USBD_PHYCTL) & ~0x200) | 0x1000000);
-            printf("power down 0x%x\n", inpw(REG_USBD_PHYCTL));
-            /* enter power down */
-            outpw(0xB00001FC, 0x59);    /* unlock */
-            outpw(0xB00001FC, 0x16);
-            outpw(0xB00001FC, 0x88);
-
-            //enable NUC980 to enter power down mode
-            while (!(inpw(REG_UART0_FSR) & (1<<22)));   // wait until TX empty
-            power_down();
-            printf("wakeup 0x%x\n", inpw(REG_USBD_PHYCTL));
         }
     }
 

@@ -157,6 +157,7 @@ int32_t main (void)
     sysDisableCache();
     sysFlushCache(I_D_CACHE);
     sysEnableCache(CACHE_WRITE_BACK);
+
     UART_Init();
 
     /* Select UART1 Multi-Function */

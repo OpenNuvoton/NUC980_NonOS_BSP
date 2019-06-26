@@ -760,6 +760,7 @@ int main(void)
         printf("PASS count: %d\n", pass_cnt);
     }
     printf("All test file done.\n");
+    fflush(stdout);
     while (1);
 }
 

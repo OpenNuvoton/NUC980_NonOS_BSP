@@ -27,7 +27,8 @@ typedef struct dma_desc_t
     uint32_t offset;
 } DMA_DESC_T;
 
-DMA_DESC_T DMA_DESC[2];
+DMA_DESC_T *DMA_DESC;
+DMA_DESC_T DMA_DESC2[2];
 
 /**
  * @brief       DMA IRQ
@@ -80,6 +81,7 @@ void UART_Init()
 /*---------------------------------------------------------------------------------------------------------*/
 int main(void)
 {
+    outpw(REG_CLK_HCLKEN, inpw(REG_CLK_HCLKEN)|(1<<12)); //Enable PDMA0 engine
     sysDisableCache();
     sysFlushCache(I_D_CACHE);
     sysEnableCache(CACHE_WRITE_BACK);
@@ -96,6 +98,7 @@ int main(void)
     /* This sample will transfer data by looped around two descriptor tables from two different source to the same destination buffer in sequence.
        And operation sequence will be table 1 -> table 2-> table 1 -> table 2 -> table 1 -> ... -> until PDMA configuration doesn't be reloaded. */
 
+    DMA_DESC = (DMA_DESC_T *)((uint32_t)DMA_DESC2 | 0x80000000); //Set DMA_DESC pointer to non-cached address
     /*--------------------------------------------------------------------------------------------------
       PDMA transfer configuration:
 
@@ -223,6 +226,7 @@ int main(void)
             printf("test done...\n");
             /* Close PDMA channel */
             PDMA_Close(PDMA0);
+            while(1);
         }
     }
 }

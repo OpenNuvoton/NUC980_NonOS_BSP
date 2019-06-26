@@ -182,7 +182,7 @@ uint32_t SDH_Swap32(uint32_t val)
 }
 
 /* Get 16 bytes CID or CSD */
-uint32_t SDH_SDCmdAndRsp2(SDH_T *sdh, uint32_t ucCmd, uint32_t uArg, uint32_t puR2ptr[])
+uint32_t SDH_SDCmdAndRsp2(SDH_T *sdh, uint32_t ucCmd, uint32_t uArg, uint32_t *puR2ptr)
 {
     uint32_t i, buf;
     uint32_t tmpBuf[5];
@@ -481,7 +481,7 @@ uint32_t SDH_Init(SDH_T *sdh)
 
     if (pSD->CardType != SDH_TYPE_UNKNOWN)
     {
-        SDH_SDCmdAndRsp2(sdh, 2ul, 0x00ul, CIDBuffer);
+        SDH_SDCmdAndRsp2(sdh, 2ul, 0x00ul, (uint32_t *)CIDBuffer);
         if ((pSD->CardType == SDH_TYPE_MMC) || (pSD->CardType == SDH_TYPE_EMMC))
         {
             if ((status = SDH_SDCmdAndRsp(sdh, 3ul, 0x10000ul, 0ul)) != Successful)     /* set RCA */
@@ -700,7 +700,7 @@ void SDH_Get_SD_info(SDH_T *sdh)
         pSD = &SD1;
     }
 
-    SDH_SDCmdAndRsp2(sdh, 9ul, pSD->RCA, Buffer);
+    SDH_SDCmdAndRsp2(sdh, 9ul, pSD->RCA, (uint32_t *)Buffer);
 
     if ((pSD->CardType == SDH_TYPE_MMC) || (pSD->CardType == SDH_TYPE_EMMC))
     {
@@ -780,7 +780,7 @@ void SDH_Get_SD_info(SDH_T *sdh)
  */
 void SDH_Open(SDH_T *sdh, uint32_t u32CardDetSrc)
 {
-    int i;
+    volatile int i;
     sdh->DMACTL = SDH_DMACTL_DMARST_Msk;
     while ((sdh->DMACTL & SDH_DMACTL_DMARST_Msk) == SDH_DMACTL_DMARST_Msk)
     {
@@ -812,7 +812,7 @@ void SDH_Open(SDH_T *sdh, uint32_t u32CardDetSrc)
     {
         sdh->INTEN |= SDH_INTEN_CDSRC_Msk;
     }
-    for(i=0;i<0x100;i++) __nop();
+    for(i=0;i<0x100;i++);
     sdh->INTSTS = SDH_INTSTS_CDIF_Msk;
     sdh->INTEN |= SDH_INTEN_CDIEN_Msk;
 

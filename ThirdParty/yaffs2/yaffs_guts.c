@@ -1047,7 +1047,7 @@ static int yaffs_find_chunk_in_group(struct yaffs_dev *dev, int the_chunk,
 	return -1;
 }
 
-static int yaffs_find_chunk_in_file(struct yaffs_obj *in, int inode_chunk,
+int yaffs_find_chunk_in_file(struct yaffs_obj *in, int inode_chunk,
 				    struct yaffs_ext_tags *tags)
 {
 	/*Get the Tnode, then get the level 0 offset chunk offset */

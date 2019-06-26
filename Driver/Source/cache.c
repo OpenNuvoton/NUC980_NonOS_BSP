@@ -25,20 +25,39 @@ typedef struct _coarse_table
 } _CTable;
 
 #ifdef USING_SEACTION_TABLE
+#if defined (__GNUC__) && !(__CC_ARM)
+__attribute__((aligned(0x4000))) unsigned int _mmuSectionTable[4096] =
+#else
 __align(0x4000) unsigned int _mmuSectionTable[4096] =
+#endif
 {
 #include "_mmuSectionTable.dat"
 };
+#else
+#if defined (__GNUC__) && !(__CC_ARM)
+__attribute__((aligned(0x4000))) unsigned int _mmuSectionTable[4096];
+__attribute__((aligned(1024))) static _CTable _mmuCoarsePageTable[_CoarsePageSize];          // maximum 64MB for coarse pages
+__attribute__((aligned(1024))) static _CTable _mmuCoarsePageTable_NonCache[_CoarsePageSize]; // Shadow SDRAM area for non-cacheable
 #else
 __align(0x4000) unsigned int _mmuSectionTable[4096];
 __align(1024) static _CTable _mmuCoarsePageTable[_CoarsePageSize];          // maximum 64MB for coarse pages
 __align(1024) static _CTable _mmuCoarsePageTable_NonCache[_CoarsePageSize]; // Shadow SDRAM area for non-cacheable
 #endif
+#endif
 static BOOL _IsInitMMUTable = FALSE;
 
 extern INT32 sysGetSdramSizebyMB(void);
 
-
+#if defined (__GNUC__) && !(__CC_ARM)
+void sys_flush_and_clean_dcache(void)
+{
+    asm volatile(
+    "tci_loop:  \n\t"
+    "MRC p15, #0, r15, c7, c14, #3  \n\t" // test clean and invalidate
+    "BNE tci_loop  \n\t"
+    );
+}
+#else
 __asm void sys_flush_and_clean_dcache(void)
 {
 tci_loop
@@ -46,7 +65,25 @@ tci_loop
     BNE tci_loop
     BX  lr
 }
+#endif
 
+#if defined (__GNUC__) && !(__CC_ARM)
+void sysSetupCP15(unsigned int addr)
+{
+    asm volatile(
+    "MOV     r1, r0                \n" // _mmuSectionTable
+    "MCR     p15, #0, r1, c2, c0, #0  \n" // write translation table base register c2
+
+    "MOV     r1, #0x40000000   \n"
+    "MCR     p15, #0, r1, c3, c0, #0  \n"  // domain access control register c3
+
+    "MRC     p15, #0, r1, c1, c0, #0 \n" // read control register c1
+    "ORR     r1, r1, #0x1000 \n"       // enable I cache bit
+    "ORR     r1, r1, #0x5     \n"      // enable D cache and MMU bits
+    "MCR     p15, #0, r1, c1, c0, #0  \n" // write control register c1
+    );
+}
+#else
 __asm void sysSetupCP15(unsigned int addr)
 {
     MOV     r1, r0                 // _mmuSectionTable
@@ -61,6 +98,7 @@ __asm void sysSetupCP15(unsigned int addr)
     MCR     p15, 0, r1, c1, c0, 0  // write control register c1
     BX      lr
 }
+#endif
 #ifndef USING_SEACTION_TABLE
 unsigned int sysGetPhyPageAddr(unsigned int vaddr)
 {
@@ -235,26 +273,64 @@ void sysFlushCache(INT32 nCacheType)
     switch (nCacheType)
     {
     case I_CACHE:
+
+#if defined (__GNUC__) && !(__CC_ARM)
+        asm
+        (
+            /*----- flush I-cache -----*/
+            "MOV %0, #0x0  \n\t"
+            "MCR p15, #0, %0, c7, c5, 0  \n\t" /* invalidate I cache */
+            : "=r"(temp)
+            : "0" (temp)
+            : "memory"
+        );
+#else
         __asm
         {
             /*----- flush I-cache -----*/
             MOV temp, 0x0
             MCR p15, 0, temp, c7, c5, 0 /* invalidate I cache */
         }
+#endif
         break;
 
     case D_CACHE:
         sys_flush_and_clean_dcache();
+
+#if defined (__GNUC__) && !(__CC_ARM)
+        asm volatile
+        (
+            /*----- flush D-cache & write buffer -----*/
+            "MOV %0, #0x0 \n\t"
+            "MCR p15, #0, %0, c7, c10, #4 \n\t" /* drain write buffer */
+            :"=r" (temp)
+            :"0"  (temp)
+            :"memory"
+        );
+#else
         __asm
         {
             /*----- flush D-cache & write buffer -----*/
             MOV temp, 0x0
             MCR p15, 0, temp, c7, c10, 4 /* drain write buffer */
         }
+#endif
         break;
 
     case I_D_CACHE:
         sys_flush_and_clean_dcache();
+#if defined (__GNUC__) && !(__CC_ARM)
+        asm volatile
+        (
+            /*----- flush I, D cache & write buffer -----*/
+            "MOV %0, #0x0  \n\t"
+            "MCR p15, #0, %0, c7, c5, #0  \n\t" /* invalidate I cache */
+            "MCR p15, #0, %0, c7, c10, #4 \n\t" /* drain write buffer */
+            :"=r" (temp)
+            :"0"  (temp)
+            :"memory"
+        );
+#else
         __asm
         {
             /*----- flush I, D cache & write buffer -----*/
@@ -262,6 +338,7 @@ void sysFlushCache(INT32 nCacheType)
             MCR p15, 0, temp, c7, c5, 0 /* invalidate I cache */
             MCR p15, 0, temp, c7, c10, 4 /* drain write buffer */
         }
+#endif
         break;
 
     default:
@@ -273,11 +350,22 @@ void sysInvalidCache()
 {
     int temp;
 
+#if defined (__GNUC__) && !(__CC_ARM)
+    asm volatile
+    (
+        "MOV %0, #0x0 \n\t"
+        "MCR p15, #0, %0, c7, c7, #0 \n\t" /* invalidate I and D cache */
+        :"=r" (temp)
+        :"0" (temp)
+        :"memory"
+    );
+#else
     __asm
     {
         MOV temp, 0x0
         MCR p15, 0, temp, c7, c7, 0 /* invalidate I and D cache */
     }
+#endif
 }
 
 BOOL sysGetCacheState()
@@ -296,6 +384,18 @@ INT32 _sysLockCode(UINT32 addr, INT32 size)
 {
     int i, cnt, temp;
 
+#if defined (__GNUC__) && !(__CC_ARM)
+    asm volatile
+    (
+        /* use way3 to lock instructions */
+        "MRC p15, #0, %0, c9, c0, #1 \n\t"
+        "ORR %0, %0, #0x07 \n\t"
+        "MCR p15, #0, %0, c9, c0, #1 \n\t"
+        :"=r" (temp)
+        :"0" (temp)
+        :"memory"
+    );
+#else
     __asm
     {
         /* use way3 to lock instructions */
@@ -303,21 +403,41 @@ INT32 _sysLockCode(UINT32 addr, INT32 size)
         ORR temp, temp, 0x07 ;
         MCR p15, 0, temp, c9, c0, 1 ;
     }
+#endif
 
     if (size % 16)  cnt = (size/16) + 1;
     else            cnt = size / 16;
 
     for (i=0; i<cnt; i++)
     {
+#if defined (__GNUC__) && !(__CC_ARM)
+        asm volatile
+        (
+            "MCR p15, #0, r0, c7, c13, #1 \n\t"
+        );
+#else
         __asm
         {
             MCR p15, 0, addr, c7, c13, 1;
         }
+#endif
 
         addr += 16;
     }
 
-
+#if defined (__GNUC__) && !(__CC_ARM)
+    asm volatile
+    (
+        /* use way3 to lock instructions */
+        "MRC p15, #0, %0, c9, c0, #1 \n\t"
+        "BIC %0, %0, #0x07  \n\t"
+        "ORR %0, %0, #0x08 \n\t"
+        "MCR p15, #0, %0, c9, c0, #1 \n\t"
+        :"=r" (temp)
+        :"0"  (temp)
+        :"memory"
+    );
+#else
     __asm
     {
         /* use way3 to lock instructions */
@@ -326,6 +446,7 @@ INT32 _sysLockCode(UINT32 addr, INT32 size)
         ORR temp, temp, 0x08 ;
         MCR p15, 0, temp, c9, c0, 1 ;
     }
+#endif
 
     return 0;
 
@@ -337,13 +458,24 @@ INT32 _sysUnLockCode()
     int temp;
 
     /* unlock I-cache way 3 */
+#if defined (__GNUC__) && !(__CC_ARM)
+    asm volatile
+    (
+        "MRC p15, #0, %0, c9, c0, #1  \n"
+        "BIC %0, %0, #0x08 \n"
+        "MCR p15, #0, %0, c9, c0, #1  \n"
+        :"=r" (temp)
+        :"0"  (temp)
+        :"memory"
+    );
+#else
     __asm
     {
         MRC p15, 0, temp, c9, c0, 1;
         BIC temp, temp, 0x08 ;
         MCR p15, 0, temp, c9, c0, 1;
-
     }
+#endif
 
     return 0;
 }
@@ -377,6 +509,24 @@ void sysDisableCache(void)
     int temp;
 
     sys_flush_and_clean_dcache();
+#if defined (__GNUC__) && !(__CC_ARM)
+    asm volatile
+    (
+        /*----- flush I, D cache & write buffer -----*/
+        "MOV %0, #0x0 \n\t"
+        "MCR p15, #0, %0, c7, c5, #0 \n\t" /* flush I cache */
+        "MCR p15, #0, %0, c7, c6, #0 \n\t" /* flush D cache */
+        "MCR p15, #0, %0, c7, c10,#4 \n\t" /* drain write buffer */
+
+        /*----- disable Protection Unit -----*/
+        "MRC p15, #0, %0, c1, c0, #0   \n\t"  /* read Control register */
+        "BIC %0, %0, #0x01  \n\t"
+        "MCR p15, #0, %0, c1, c0, #0   \n\t"  /* write Control register */
+        :"=r" (temp)
+        :"0"  (temp)
+        :"memory"
+    );
+#else
     __asm
     {
         /*----- flush I, D cache & write buffer -----*/
@@ -390,6 +540,7 @@ void sysDisableCache(void)
         BIC temp, temp, 0x01
         MCR p15, 0, temp, c1, c0, 0     /* write Control register */
     }
+#endif
     _sys_IsCacheOn = FALSE;
     _sys_CacheMode = CACHE_DISABLE;
 

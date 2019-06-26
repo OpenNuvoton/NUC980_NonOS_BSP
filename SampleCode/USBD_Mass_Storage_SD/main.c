@@ -9,7 +9,7 @@
  * Copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
  ******************************************************************************/
 #include <string.h>
-#include "NUC980.h"
+#include "nuc980.h"
 #include "sys.h"
 #include "usbd.h"
 #include "sdh.h"

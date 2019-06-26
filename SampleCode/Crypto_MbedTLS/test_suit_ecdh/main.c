@@ -870,6 +870,7 @@ int main(void)
 
     printf("\n----------------------------------------------------------------------------\n\n");
     printf("%d pattern PASSED", pass_cnt );
+    fflush(stdout);
 
     while (1);
 }

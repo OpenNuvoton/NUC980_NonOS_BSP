@@ -53,7 +53,8 @@ void *yaffsfs_malloc(size_t x)
 
 void yaffsfs_free(void *x)
 {
-	free(x);
+	//free(x);
+    yaffs_free(x);
 }
 
 void yaffsfs_SetError(int err)
@@ -233,7 +234,7 @@ int cmd_yaffs_devconfig(char *_mp, int flash_dev,
 	dev->param.is_yaffs2 = 1;
 	dev->param.use_nand_ecc = 1;
 	dev->param.n_reserved_blocks = 5;
-	if (chip->ecc.layout->oobavail < sizeof(struct yaffs_packed_tags2))
+	if (chip->ecc.layout->oobavail <= sizeof(struct yaffs_packed_tags2))
 		dev->param.inband_tags = 1;
 	dev->param.n_caches = 10;
     dev->tagger.write_chunk_tags_fn = nandmtd2_write_chunk_tags;

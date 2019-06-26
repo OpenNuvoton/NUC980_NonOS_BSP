@@ -6,7 +6,7 @@
  * @copyright (C) 2016 Nuvoton Technology Corp. All rights reserved.
  ******************************************************************************/
 #include <stdio.h>
-#include "NUC980.h"
+#include "nuc980.h"
 #include "sys.h"
 #include "usbd.h"
 #include "hid_mouse.h"

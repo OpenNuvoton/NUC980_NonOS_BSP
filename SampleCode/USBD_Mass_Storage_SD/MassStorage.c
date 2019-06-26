@@ -11,7 +11,7 @@
 
 /*!<Includes */
 #include <string.h>
-#include "NUC980.h"
+#include "nuc980.h"
 #include "usbd.h"
 #include "sdh.h"
 #include "massstorage.h"

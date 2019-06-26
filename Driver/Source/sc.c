@@ -32,7 +32,7 @@ static uint32_t u32CardStateIgnore[SC_INTERFACE_NUM] = {0, 0};
   * @retval FALSE Card remove.
   * @details This function is used to check if specified smart card slot is presented.
   */
-uint32_t SC_IsCardInserted(UINT sc)
+UINT SC_IsCardInserted(UINT sc)
 {
     uint32_t cond1;
     uint32_t cond2;

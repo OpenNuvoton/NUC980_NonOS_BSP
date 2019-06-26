@@ -3,7 +3,7 @@
  * @version  V1.00
  * @brief    This header file defines the configuration of USB Host library.
  * @note
- * Copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
+ * Copyright (C) 2019 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 
 #ifndef  _USBH_CONFIG_H_
@@ -111,9 +111,9 @@
 #define   __IO    volatile             /*!< Defines 'read / write' permissions */
 
 
-typedef unsigned int     uint32_t;
-typedef unsigned short   uint16_t;
-typedef unsigned char    uint8_t;
+//typedef unsigned int     uint32_t;
+//typedef unsigned short   uint16_t;
+//typedef unsigned char    uint8_t;
 
 
 
@@ -1328,7 +1328,7 @@ typedef struct
     __IO uint32_t UASSTR;                /*!< [0x003c] USB Asynchronous Schedule Sleep Timer Register                   */
     __I  uint32_t RESERVE2[8];
     __IO uint32_t UCFGR;                 /*!< [0x0060] USB Configure Flag Register                                      */
-    __IO uint32_t UPSCR[2];              /*!< [0x0064] ~ [0x0068] USB Port 0 & 1 Status and Control Register                           */
+    __IO uint32_t UPSCR[2];              /*!< [0x0064] ~ [0x0068] USB Port 0 & 1 Status and Control Register            */
     __I  uint32_t RESERVE3[22];
     __IO uint32_t USBPCR0;               /*!< [0x00c4] USB PHY 0 Control Register                                       */
     __IO uint32_t USBPCR1;               /*!< [0x00c8] USB PHY 1 Control Register                                       */
@@ -1559,5 +1559,5 @@ typedef struct
 
 #endif  /* _USBH_CONFIG_H_ */
 
-/*** (C) COPYRIGHT 2017 Nuvoton Technology Corp. ***/
+/*** (C) COPYRIGHT 2019 Nuvoton Technology Corp. ***/
 

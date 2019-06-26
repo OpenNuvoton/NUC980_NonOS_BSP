@@ -26,7 +26,7 @@
 #define USBH_DRIVE_4    7        /* USB Mass Storage */
 
 
-static __align(32) BYTE  fatfs_win_buff_pool[_MAX_SS] ;       /* FATFS window buffer is cachable. Must not use it directly. */
+static BYTE  fatfs_win_buff_pool[_MAX_SS] __attribute__((aligned(32)));       /* FATFS window buffer is cachable. Must not use it directly. */
 BYTE  *fatfs_win_buff;
 
 
@@ -69,32 +69,22 @@ DRESULT disk_read (
     int       ret;
     int       sec_size;
 
-    // printf("disk_read - drv:%d, sec:%d, cnt:%d, buff:0x%x\n", pdrv, sector, count, (UINT32)buff);
+    //printf("disk_read - drv:%d, sec:%d, cnt:%d, buff:0x%x\n", pdrv, sector, count, (UINT32)buff);
 
     if (!((UINT32)buff & 0x80000000))
     {
         /* Disk read buffer is not non-cachable buffer. Use my non-cachable to do disk read. */
-        sec_size = 512; //usbh_umas_disk_sector_size(pdrv);
+        sec_size = 512; // usbh_umas_disk_sector_size(pdrv);
         if (count * sec_size > _MAX_SS)
             return RES_ERROR;
 
         fatfs_win_buff = (BYTE *)((unsigned int)fatfs_win_buff_pool | 0x80000000);
         ret = (DRESULT) usbh_umas_read(pdrv, sector, count, fatfs_win_buff);
-        if (ret < 0)
-        {
-            usbh_umas_reset_disk(pdrv);
-            ret = usbh_umas_read(pdrv, sector, count, buff);
-        }
         memcpy(buff, fatfs_win_buff, count * sec_size);
     }
     else
     {
         ret = usbh_umas_read(pdrv, sector, count, buff);
-        if (ret < 0)
-        {
-            usbh_umas_reset_disk(pdrv);
-            ret = usbh_umas_read(pdrv, sector, count, buff);
-        }
     }
 
     if (ret == UMAS_OK)
@@ -130,27 +120,17 @@ DRESULT disk_write (
     if (!((UINT32)buff & 0x80000000))
     {
         /* Disk write buffer is not non-cachable buffer. Use my non-cachable to do disk write. */
-        sec_size = 512; //usbh_umas_disk_sector_size(pdrv);
+        sec_size = 512;  //usbh_umas_disk_sector_size(pdrv);
         if (count * sec_size > _MAX_SS)
             return RES_ERROR;
 
         fatfs_win_buff = (BYTE *)((unsigned int)fatfs_win_buff_pool | 0x80000000);
         memcpy(fatfs_win_buff, buff, count * sec_size);
         ret = usbh_umas_write(pdrv, sector, count, fatfs_win_buff);
-        if (ret < 0)
-        {
-            usbh_umas_reset_disk(pdrv);
-            ret = usbh_umas_write(pdrv, sector, count, fatfs_win_buff);
-        }
     }
     else
     {
         ret = usbh_umas_write(pdrv, sector, count, (UINT8 *)buff);
-        if (ret < 0)
-        {
-            usbh_umas_reset_disk(pdrv);
-            ret = usbh_umas_write(pdrv, sector, count, (UINT8 *)buff);
-        }
     }
 
     if (ret == UMAS_OK)

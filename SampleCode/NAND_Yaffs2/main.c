@@ -9,6 +9,7 @@
  * Copyright (C) 2015 Nuvoton Technology Corp. All rights reserved.
 *****************************************************************************/
 #include <string.h>
+#include "stdio.h"
 
 #include "nuc980.h"
 #include "sys.h"

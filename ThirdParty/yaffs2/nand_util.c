@@ -25,6 +25,7 @@
 #include <malloc.h>
 //#include <memalign.h>
 #include <div64.h>
+#include "string.h"
 
 #include <linux/errno.h>
 #include <linux/mtd/mtd.h>
@@ -32,6 +33,7 @@
 #include <jffs2/jffs2.h>
 #include "yaffs_malloc.h"
 
+extern int puts(const char * /*s*/) __attribute__((__nonnull__(1)));
 typedef struct erase_info	erase_info_t;
 typedef struct mtd_info		mtd_info_t;
 

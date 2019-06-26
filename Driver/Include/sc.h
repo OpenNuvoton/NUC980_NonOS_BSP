@@ -6,7 +6,7 @@
  *****************************************************************************/
 #ifndef __SC_H__
 #define __SC_H__
-#include "NUC980.h"
+#include "nuc980.h"
 #ifdef __cplusplus
 extern "C"
 {

@@ -32,13 +32,21 @@ int NormalConvCallback(UINT32 status, UINT32 userData)
 
 int get_adc_val()
 {
+    uint32_t  adc_data;
     adcIoctl(NAC_ON, (UINT32)NormalConvCallback,0);   //Enable Normal AD Conversion
     adcIoctl(VBPOWER_ON, 0, 0);                       //Enable ADC Internal Bandgap Power
-    adcChangeChannel(8 << ADC_CONF_CHSEL_Pos);
-    normal_complete = 0;
-    adcIoctl(START_MST, 0, 0);
-    while (normal_complete == 0);
-    return inpw(REG_ADC_DATA);
+ 
+    do
+    {
+        adcChangeChannel(8 << ADC_CONF_CHSEL_Pos);
+        normal_complete = 0;
+        adcIoctl(START_MST, 0, 0);
+        while (normal_complete == 0);
+        adc_data = inpw(REG_ADC_DATA);
+    }
+    while ((adc_data < 0xb90) || (adc_data > 0xbe0));     /* ADC VREF expect value should be around 0xbb0 in case of floating */
+
+    return adc_data;
 }
 
 int  adc_trng_gen_bit()
@@ -62,7 +70,6 @@ int  adc_trng_gen_bit()
     val_sum += new_val;
     adc_val[oldest] = new_val;
     oldest = (oldest + 1) % SNUM;
-
     return ret_val;
 }
 
@@ -108,6 +115,7 @@ void  init_adc_init()
     int    i;
 
     adcOpen();
+    outpw(REG_ADC_CTL, inpw(REG_ADC_CTL) | 0x3);  /* ADC Reference Select: AGND33 vs AVDD33 */
 
     val_sum = 0;
     for (i = 0; i < SNUM; i++)
@@ -117,7 +125,7 @@ void  init_adc_init()
         val_sum += adc_val[i];
     }
     oldest = 0;
-    
+
     adc_trng_gen_rnd();    // drop the first 32-bits
 }
 

@@ -17,7 +17,7 @@
 #include "usbh_lib.h"
 #include "usbh_hid.h"
 
-__align(32) uint32_t   g_buff_pool[1024];
+uint32_t   g_buff_pool[1024] __attribute__((aligned(32)));
 
 extern int  kbd_parse_report(HID_DEV_T *hdev, uint8_t *buf, int len);
 

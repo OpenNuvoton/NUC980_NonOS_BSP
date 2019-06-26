@@ -29,7 +29,7 @@ volatile int32_t g_i32pointer = 0;
 /* Define functions prototype                                                                              */
 /*---------------------------------------------------------------------------------------------------------*/
 int32_t main(void);
-void UART_TEST_HANDLE(void);
+//void UART_TEST_HANDLE(void);
 void IrDA_FunctionTxTest(void);
 void IrDA_FunctionRxTest(void);
 void IrDA_FunctionTest(void);
@@ -59,7 +59,7 @@ void UART1_Init()
 /* MAIN function                                                                                           */
 /*---------------------------------------------------------------------------------------------------------*/
 
-int main(void)
+int32_t main(void)
 {
     sysDisableCache();
     sysFlushCache(I_D_CACHE);

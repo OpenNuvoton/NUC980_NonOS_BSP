@@ -14,14 +14,22 @@
 /*---------------------------------------------------------------------------------------------------------*/
 /* Global Interface Variables Declarations                                                                 */
 /*---------------------------------------------------------------------------------------------------------*/
-extern int IsDebugFifoEmpty(void);
 volatile uint8_t g_u8IsRTCAlarmINT = 0;
 
+#if defined ( __GNUC__ ) && !(__CC_ARM)
+void __wfi(void)
+{
+    asm volatile(
+    "MCR p15, 0, r1, c7, c0, 4  "
+    );
+}
+#else
 __asm void __wfi()
 {
     MCR p15, 0, r1, c7, c0, 4
     BX  lr
 }
+#endif
 
 /**
  * @brief       IRQ Handler for RTC Interrupt

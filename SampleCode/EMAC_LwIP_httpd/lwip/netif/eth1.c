@@ -203,10 +203,7 @@ void ETH1_RX_IRQHandler(void)
 
         if (status & RXFD_RXGD)
         {
-
             ethernetif_input1(status & 0xFFFF, cur_rx_desc_ptr->buf);
-
-
         }
 
         cur_rx_desc_ptr->status1 = OWNERSHIP_EMAC;
@@ -236,7 +233,6 @@ void ETH1_TX_IRQHandler(void)
 
     while (cur_entry != (u32_t)fin_tx_desc_ptr)
     {
-
         fin_tx_desc_ptr = fin_tx_desc_ptr->next;
     }
 
@@ -285,7 +281,7 @@ void ETH1_init(u8_t *mac_addr)
 
     init_tx_desc();
     init_rx_desc();
-
+    sysFlushCache(D_CACHE);
     set_mac_addr(mac_addr);  // need to reconfigure hardware address 'cos we just RESET emc...
     reset_phy();
 

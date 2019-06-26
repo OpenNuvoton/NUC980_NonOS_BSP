@@ -24,11 +24,20 @@ typedef void (*I2C_FUNC)(uint32_t u32Status);
 
 static I2C_FUNC s_I2C0HandlerFn = NULL;
 
+#if defined ( __GNUC__ ) && !(__CC_ARM)
+void __wfi(void)
+{
+    asm volatile(
+    "MCR p15, 0, r1, c7, c0, 4  "
+    );
+}
+#else
 __asm void __wfi()
 {
     MCR p15, 0, r1, c7, c0, 4
     BX  lr
 }
+#endif
 
 void UART_Init()
 {

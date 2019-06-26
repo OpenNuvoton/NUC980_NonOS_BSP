@@ -25,8 +25,11 @@
 #define USBH_DRIVE_3    6        /* USB Mass Storage */
 #define USBH_DRIVE_4    7        /* USB Mass Storage */
 
-
+#if defined (__GNUC__) && !(__CC_ARM)
+static __attribute__((aligned(32))) BYTE  fatfs_win_buff_pool[_MAX_SS] ;       /* FATFS window buffer is cachable. Must not use it directly. */
+#else
 static __align(32) BYTE  fatfs_win_buff_pool[_MAX_SS] ;       /* FATFS window buffer is cachable. Must not use it directly. */
+#endif
 BYTE  *fatfs_win_buff;
 
 /* Definitions of physical drive number for each media */

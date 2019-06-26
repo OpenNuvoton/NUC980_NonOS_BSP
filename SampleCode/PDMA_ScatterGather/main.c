@@ -59,7 +59,7 @@ void UART_Init()
 int main(void)
 {
     uint32_t u32Src, u32Dst0, u32Dst1;
-
+    outpw(REG_CLK_HCLKEN, inpw(REG_CLK_HCLKEN)|(1<<12)); //Enable PDMA0 engine
     sysDisableCache();
     sysFlushCache(I_D_CACHE);
     sysEnableCache(CACHE_WRITE_BACK);

@@ -32,7 +32,7 @@ char Line[256];                         /* Console input buffer */
 char Lfname[512];
 #endif
 
-__align(32) BYTE Buff_Pool[BUFF_SIZE*2] ;       /* Working buffer */
+BYTE Buff_Pool[BUFF_SIZE*2] __attribute__((aligned(32)));       /* Working buffer */
 
 BYTE  *Buff, *Buff2;
 
@@ -118,6 +118,7 @@ void  dump_buff_hex(uint8_t *pucBuff, int nBytes)
         printf("\n");
     }
     printf("\n");
+    fflush(stdout);
 }
 
 
@@ -306,6 +307,8 @@ void get_line (char *buff, int len)
     {
         c = getchar();
         putchar(c);
+        fflush(stdout);
+
         if (c == '\r') break;
         if ((c == '\b') && idx) idx--;
         if ((c >= ' ') && (idx < len - 1)) buff[idx++] = c;
@@ -313,7 +316,7 @@ void get_line (char *buff, int len)
     buff[idx] = 0;
 
     putchar('\n');
-
+    fflush(stdout);
 }
 
 /*---------------------------------------------------------*/
@@ -344,19 +347,6 @@ void UART_Init()
     /* UART0 line configuration for (115200,n,8,1) */
     outpw(REG_UART0_LCR, inpw(REG_UART0_LCR) | 0x07);
     outpw(REG_UART0_BAUD, 0x30000066); /* 12MHz reference clock input, 115200 */
-}
-
-__asm void __wfi(void)
-{
-    MCR p15, 0, r1, c7, c0, 4
-    BX  lr
-}
-
-void power_down()
-{
-    *(volatile unsigned int *)(0xB0000200) &= 0xFFFFFFFE;
-    *(unsigned int volatile *)(0xB00001FC) = 0;
-    __wfi();
 }
 
 
@@ -430,6 +420,8 @@ int32_t main(void)
         printf(_T(">"));
         ptr = Line;
 
+        fflush(stdout);
+
         while (kbhit())
             usbh_pooling_hubs();
 
@@ -442,25 +434,6 @@ int32_t main(void)
 
         case 'q' :  /* Exit program */
             return 0;
-
-        case '1':          /* Power down and wakeup by EHCI/OCHI connect/disconnect or OHCI remote wakeup */
-            outpw(REG_CLK_PMCON, ((inpw(REG_CLK_PMCON) & 0x000000FF) | (0xff00)));  /* config wakeup pre-scaler */
-            outpw(REG_CLK_PMCON, (inpw(REG_CLK_PMCON) & ~0x2));
-            printf("REG_CLK_PMCON = 0x%x\n", inpw(REG_CLK_PMCON));
-            outpw(REG_SYS_WKUPSER1, inpw(REG_SYS_WKUPSER1) | (1UL<<18));   /* USBH wakeup system enable */
-            printf("\n\n");
-            printf("USBH suspend....n");
-            usbh_suspend();
-            printf("EHCI: 0x%x, 0x%x; OHCI: 0x%x, 0x%x\n", HSUSBH->UPSCR[0], HSUSBH->UPSCR[1], USBH->HcRhPortStatus[0], USBH->HcRhPortStatus[1]);
-            printf("Enter power down...\n");
-            while (!(inpw(REG_UART0_FSR) & (1<<22)));   // wait until TX empty
-            power_down();
-            printf("Wakeup!!\n");
-            usbh_resume();
-            printf("USBH resume....n");
-            printf("EHCI: 0x%x, 0x%x; OHCI: 0x%x, 0x%x\n", HSUSBH->UPSCR[0], HSUSBH->UPSCR[1], USBH->HcRhPortStatus[0], USBH->HcRhPortStatus[1]);
-            printf("\n\n");
-            break;
 
         case '3' :
             USBHL_select_MFP();

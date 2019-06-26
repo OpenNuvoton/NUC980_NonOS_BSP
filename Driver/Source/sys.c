@@ -27,7 +27,7 @@
 #define SYS_NUM_OF_AICREG        16
 
 /* Global variables */
-BOOL volatile _sys_bIsAICInitial = FALSE;
+UINT32 volatile _sys_bIsAICInitial = 0x0;
 
 /* declaration the function prototype */
 void SYS_IRQ_Shell(void);
@@ -168,7 +168,11 @@ sys_pvFunPtr sysFiqHandlerTable[] = { 0,
                                     };
 
 /* Interrupt Handler */
+#if defined (__GNUC__) && !(__CC_ARM)
+static void __attribute__ ((interrupt("IRQ"))) sysIrqHandler(void)
+#else
 __irq void sysIrqHandler()
+#endif
 {
     UINT32 volatile num;
 
@@ -178,7 +182,11 @@ __irq void sysIrqHandler()
     outpw(REG_AIC_EOIS, 1);
 }
 
+#if defined (__GNUC__) && !(__CC_ARM)
+static void __attribute__ ((interrupt("FIQ"))) sysFiqHandler(void)
+#else
 __irq void sysFiqHandler()
+#endif
 {
     UINT32 volatile num;
 
@@ -200,9 +208,15 @@ void SYS_FIQ_Shell(void)
 
 void sysInitializeAIC()
 {
+#if defined (__GNUC__) && !(__CC_ARM)
+    *(unsigned int volatile *)0x34 = (unsigned int volatile)sysIrqHandler;
+
+    *(unsigned int volatile *)0x38 = (unsigned int volatile)sysFiqHandler;
+#else
     *(unsigned int volatile *)0x38 = (unsigned int)sysIrqHandler;
 
     *(unsigned int volatile *)0x3C = (unsigned int)sysFiqHandler;
+#endif
 }
 /// @endcond HIDDEN_SYMBOLS
 
@@ -428,30 +442,52 @@ INT32 sysSetInterruptPriorityLevel(IRQn_Type eIntNo, UINT32 uIntLevel)
  */
 INT32 sysSetLocalInterrupt(INT32 nIntState)
 {
+#if defined (__GNUC__) && !(__CC_ARM)
+
+# else
     INT32 temp;
+#endif
 
     switch (nIntState)
     {
     case ENABLE_IRQ:
     case ENABLE_FIQ:
     case ENABLE_FIQ_IRQ:
+#if defined (__GNUC__) && !(__CC_ARM)
+    asm
+        (
+            "mrs    r0, CPSR  \n"
+            "bic    r0, r0, #0x80  \n"
+            "msr    CPSR_c, r0  \n"
+        );
+#else
         __asm
         {
             MRS    temp, CPSR
             AND    temp, temp, nIntState
             MSR    CPSR_c, temp
         }
+#endif
         break;
 
     case DISABLE_IRQ:
     case DISABLE_FIQ:
     case DISABLE_FIQ_IRQ:
+#if defined ( __GNUC__ ) && !(__CC_ARM)
+    asm
+        (
+            "MRS    r0, CPSR  \n"
+            "ORR    r0, r0, #0x80  \n"
+            "MSR    CPSR_c, r0  \n"
+        );
+#else
         __asm
         {
             MRS    temp, CPSR
             ORR    temp, temp, nIntState
             MSR    CPSR_c, temp
         }
+#endif
         break;
 
     default:
@@ -476,11 +512,18 @@ UINT32  sysGetInterruptEnableStatusH(void)
 BOOL sysGetIBitState()
 {
     INT32 temp;
-
+#if defined (__GNUC__) && !(__CC_ARM)
+    asm
+    (
+        "MRS %0, CPSR   \n"
+        :"=r" (temp) : :
+    );
+#else
     __asm
     {
         MRS temp, CPSR
     }
+#endif
 
     if (temp & 0x80)
         return FALSE;
