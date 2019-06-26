@@ -8,7 +8,7 @@
  * @note
  * Copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
 *****************************************************************************/
-#include "NUC980.h"
+#include "nuc980.h"
 #include "usbd.h"
 
 /** @addtogroup Standard_Driver Standard Driver
