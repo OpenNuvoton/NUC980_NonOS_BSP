@@ -4,7 +4,7 @@
  *           This file contains all the peripheral register's definitions
  *           and memory mapping for NuMicro NUC980 MPU.
  *
- * @copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
+ * @copyright (C) 2019 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 /**
    \mainpage NuMicro NUC980 Family Driver Reference Guide
@@ -43,7 +43,7 @@
    *
    * <b>Copyright Notice</b>
    *
-   * Copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
+   * Copyright (C) 2019 Nuvoton Technology Corp. All rights reserved.
    */
 
 #ifndef __NUC980_H__
