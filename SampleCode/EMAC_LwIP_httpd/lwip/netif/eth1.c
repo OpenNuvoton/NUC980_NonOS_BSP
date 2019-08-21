@@ -252,7 +252,7 @@ void chk_link1(void *arg)
         {
             plugged = 1;
             reset_phy();
-            outpw(REG_EMAC0_MCMDR, inpw(REG_EMAC0_MCMDR) | 0x101);
+            outpw(REG_EMAC1_MCMDR, inpw(REG_EMAC1_MCMDR) | 0x101);
         }
     }
     else
@@ -260,7 +260,7 @@ void chk_link1(void *arg)
         if (plugged)
         {
             plugged = 0;
-            outpw(REG_EMAC0_MCMDR, inpw(REG_EMAC0_MCMDR) & ~0x101);
+            outpw(REG_EMAC1_MCMDR, inpw(REG_EMAC1_MCMDR) & ~0x101);
         }
     }
     sys_timeout(2000, chk_link1, NULL);
