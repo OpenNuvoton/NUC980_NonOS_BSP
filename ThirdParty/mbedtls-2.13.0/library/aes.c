@@ -54,8 +54,8 @@
 #endif /* MBEDTLS_SELF_TEST */
 
 #ifdef NUVOTON_ENABLE_AES
-static uint8_t src_dma_buff[16] __attribute__((aligned (4)));
-static uint8_t dst_dma_buff[16] __attribute__((aligned (4)));
+static uint8_t src_dma_buff[16] __attribute__((aligned (32)));
+static uint8_t dst_dma_buff[16] __attribute__((aligned (32)));
 
 #define GET_UINT32_BE(n,b,i)                            \
 {                                                       \

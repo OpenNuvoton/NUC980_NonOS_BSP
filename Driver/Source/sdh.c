@@ -37,10 +37,10 @@ static uint32_t _SDH_uR7_CMD = 0ul;
 static uint32_t _SDH_ReferenceClock;
 
 #ifdef __ICCARM__
-#pragma data_alignment = 4
+#pragma data_alignment = 32
 static uint8_t _SDH_ucSDHCBuffer[512];
 #else
-static uint8_t _SDH_ucSDHCBuffer[512] __attribute__((aligned(4)));
+static uint8_t _SDH_ucSDHCBuffer[512] __attribute__((aligned(32)));
 #endif
 
 int SDH_ok = 0;

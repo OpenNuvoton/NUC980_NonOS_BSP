@@ -18,9 +18,15 @@
 /*---------------------------------------------------------------------------------------------------------*/
 /* Global variables                                                                                        */
 /*---------------------------------------------------------------------------------------------------------*/
-static uint8_t g_u8Tx_Buffer[PDMA_TEST_LENGTH];
-static uint8_t g_u8Rx_Buffer[PDMA_TEST_LENGTH];
-
+#if defined ( __GNUC__ ) && !(__CC_ARM)
+__attribute__((aligned(32))) static uint8_t g_u8Tx_Buffer[PDMA_TEST_LENGTH];
+__attribute__((aligned(32))) static uint8_t g_u8Rx_Buffer[PDMA_TEST_LENGTH];
+#else
+__align(32) static uint8_t g_u8Tx_Buffer[PDMA_TEST_LENGTH];
+__align(32) static uint8_t g_u8Rx_Buffer[PDMA_TEST_LENGTH];
+#endif
+static uint8_t *g_u8Tx_Buffer_point;
+static uint8_t *g_u8Rx_Buffer_point;
 volatile uint32_t u32IsTestOver = 0;
 
 /*---------------------------------------------------------------------------------------------------------*/
@@ -92,6 +98,9 @@ int main(void)
     sysDisableCache();
     sysFlushCache(I_D_CACHE);
     sysEnableCache(CACHE_WRITE_BACK);
+
+    g_u8Tx_Buffer_point = (uint8_t*)((uint32_t)g_u8Tx_Buffer | 0x80000000);
+    g_u8Rx_Buffer_point = (uint8_t*)((uint32_t)g_u8Rx_Buffer | 0x80000000);
 
     outpw(REG_CLK_HCLKEN, inpw(REG_CLK_HCLKEN) | (0x1 << 12)); // Enable PDMA0 engine clock
 
@@ -178,8 +187,8 @@ void UART_PDMATest()
 
     for (i=0; i<PDMA_TEST_LENGTH; i++)
     {
-        g_u8Tx_Buffer[i] = i;
-        g_u8Rx_Buffer[i] = 0xff;
+        g_u8Tx_Buffer_point[i] = i;
+        g_u8Rx_Buffer_point[i] = 0xff;
     }
 
     PDMA_CLR_TD_FLAG(PDMA0, PDMA_TDSTS_TDIF0_Msk|PDMA_TDSTS_TDIF1_Msk);
@@ -212,13 +221,13 @@ void UART_PDMATest()
 
         for (i=0; i<PDMA_TEST_LENGTH; i++)
         {
-            if(g_u8Rx_Buffer[i] != i)
+            if(g_u8Rx_Buffer_point[i] != i)
             {
                 printf("\n Receive Data Compare Error !!");
                 while(1);
             }
 
-            g_u8Rx_Buffer[i] = 0xff;
+            g_u8Rx_Buffer_point[i] = 0xff;
         }
 
         printf("\nUART PDMA test Pass.\n");

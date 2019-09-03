@@ -131,7 +131,7 @@ void CAP_SetFreq(CAP_T *CAP,uint32_t u32ModFreqKHz,uint32_t u32SensorFreq)
 #define SENSOR_IN_HEIGHT        480
 #define SYSTEM_WIDTH            160
 #define SYSTEM_HEIGHT           120
-uint8_t u8FrameBuffer[SYSTEM_WIDTH*SYSTEM_HEIGHT*2];
+__align(32) uint8_t u8FrameBuffer[SYSTEM_WIDTH*SYSTEM_HEIGHT*2];
 
 void PacketFormatDownScale(uint32_t SensorId)
 {

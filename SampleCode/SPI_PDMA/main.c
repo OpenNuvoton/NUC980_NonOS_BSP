@@ -24,10 +24,10 @@ void SPI_Init(void);
 void SpiLoopTest_WithPDMA(void);
 
 /* Global variable declaration */
-uint32_t g_au32MasterToSlaveTestPattern[TEST_COUNT];
-uint32_t g_au32SlaveToMasterTestPattern[TEST_COUNT];
-uint32_t g_au32MasterRxBuffer[TEST_COUNT];
-uint32_t g_au32SlaveRxBuffer[TEST_COUNT];
+uint32_t g_au32MasterToSlaveTestPattern[TEST_COUNT] __attribute__ ((aligned(32)));
+uint32_t g_au32SlaveToMasterTestPattern[TEST_COUNT] __attribute__ ((aligned(32)));
+uint32_t g_au32MasterRxBuffer[TEST_COUNT] __attribute__ ((aligned(32)));
+uint32_t g_au32SlaveRxBuffer[TEST_COUNT] __attribute__ ((aligned(32)));;
 
 void UART_Init(void)
 {
@@ -63,17 +63,24 @@ void SpiLoopTest_WithPDMA(void)
 {
     uint32_t u32DataCount, u32TestCycle;
     uint32_t u32RegValue, u32Abort;
+    uint32_t *MasterTxPtr, *SlaveTxPtr;
+    uint32_t *MasterRxPtr, *SlaveRxPtr;
     int32_t i32Err;
 
     printf("\nQSPI0/SPI1 Loop test with PDMA ");
 
     /* Source data initiation */
+    MasterTxPtr = (uint32_t *)((UINT)(&g_au32MasterToSlaveTestPattern[0]) | 0x80000000);
+    SlaveTxPtr = (uint32_t *)((UINT)(&g_au32SlaveToMasterTestPattern[0]) | 0x80000000);
     for(u32DataCount = 0; u32DataCount < TEST_COUNT; u32DataCount++)
     {
-        g_au32MasterToSlaveTestPattern[u32DataCount] = 0x55000000 | (u32DataCount + 1);
-        g_au32SlaveToMasterTestPattern[u32DataCount] = 0xAA000000 | (u32DataCount + 1);
+        *(uint32_t *)((UINT)MasterTxPtr + u32DataCount) = 0x55000000 | (u32DataCount + 1);
+        *(uint32_t *)((UINT)SlaveTxPtr + u32DataCount) = 0xAA000000 | (u32DataCount + 1);
     }
 
+    /* Set Rx buffer */
+    MasterRxPtr = (uint32_t *)((UINT)(&g_au32MasterRxBuffer[0]) | 0x80000000);
+    SlaveRxPtr = (uint32_t *)((UINT)(&g_au32SlaveRxBuffer[0]) | 0x80000000);
 
     /* Enable PDMA channels */
     PDMA_Open(PDMA0,(1 << SPI_MASTER_TX_DMA_CH) | (1 << SPI_MASTER_RX_DMA_CH) | (1 << SPI_SLAVE_RX_DMA_CH) | (1 << SPI_SLAVE_TX_DMA_CH));
@@ -92,7 +99,7 @@ void SpiLoopTest_WithPDMA(void)
     /* Set transfer width (32 bits) and transfer count */
     PDMA_SetTransferCnt(PDMA0,SPI_MASTER_TX_DMA_CH, PDMA_WIDTH_32, TEST_COUNT);
     /* Set source/destination address and attributes */
-    PDMA_SetTransferAddr(PDMA0,SPI_MASTER_TX_DMA_CH, (uint32_t)g_au32MasterToSlaveTestPattern, PDMA_SAR_INC, (uint32_t)&QSPI0->TX, PDMA_DAR_FIX);
+    PDMA_SetTransferAddr(PDMA0,SPI_MASTER_TX_DMA_CH, (uint32_t)MasterTxPtr, PDMA_SAR_INC, (uint32_t)&QSPI0->TX, PDMA_DAR_FIX);
     /* Set request source; set basic mode. */
     PDMA_SetTransferMode(PDMA0,SPI_MASTER_TX_DMA_CH, PDMA_QSPI0_TX, FALSE, 0);
     /* Single request type. SPI only support PDMA single request type. */
@@ -114,7 +121,7 @@ void SpiLoopTest_WithPDMA(void)
     /* Set transfer width (32 bits) and transfer count */
     PDMA_SetTransferCnt(PDMA0,SPI_MASTER_RX_DMA_CH, PDMA_WIDTH_32, TEST_COUNT);
     /* Set source/destination address and attributes */
-    PDMA_SetTransferAddr(PDMA0,SPI_MASTER_RX_DMA_CH, (uint32_t)&QSPI0->RX, PDMA_SAR_FIX, (uint32_t)g_au32MasterRxBuffer, PDMA_DAR_INC);
+    PDMA_SetTransferAddr(PDMA0,SPI_MASTER_RX_DMA_CH, (uint32_t)&QSPI0->RX, PDMA_SAR_FIX, (uint32_t)MasterRxPtr, PDMA_DAR_INC);
     /* Set request source; set basic mode. */
     PDMA_SetTransferMode(PDMA0,SPI_MASTER_RX_DMA_CH, PDMA_QSPI0_RX, FALSE, 0);
     /* Single request type. SPI only support PDMA single request type. */
@@ -136,7 +143,7 @@ void SpiLoopTest_WithPDMA(void)
     /* Set transfer width (32 bits) and transfer count */
     PDMA_SetTransferCnt(PDMA0,SPI_SLAVE_RX_DMA_CH, PDMA_WIDTH_32, TEST_COUNT);
     /* Set source/destination address and attributes */
-    PDMA_SetTransferAddr(PDMA0,SPI_SLAVE_RX_DMA_CH, (uint32_t)&SPI1->RX, PDMA_SAR_FIX, (uint32_t)g_au32SlaveRxBuffer, PDMA_DAR_INC);
+    PDMA_SetTransferAddr(PDMA0,SPI_SLAVE_RX_DMA_CH, (uint32_t)&SPI1->RX, PDMA_SAR_FIX, (uint32_t)SlaveRxPtr, PDMA_DAR_INC);
     /* Set request source; set basic mode. */
     PDMA_SetTransferMode(PDMA0,SPI_SLAVE_RX_DMA_CH, PDMA_SPI1_RX, FALSE, 0);
     /* Single request type. SPI only support PDMA single request type. */
@@ -158,7 +165,7 @@ void SpiLoopTest_WithPDMA(void)
     /* Set transfer width (32 bits) and transfer count */
     PDMA_SetTransferCnt(PDMA0,SPI_SLAVE_TX_DMA_CH, PDMA_WIDTH_32, TEST_COUNT);
     /* Set source/destination address and attributes */
-    PDMA_SetTransferAddr(PDMA0,SPI_SLAVE_TX_DMA_CH, (uint32_t)g_au32SlaveToMasterTestPattern, PDMA_SAR_INC, (uint32_t)&SPI1->TX, PDMA_DAR_FIX);
+    PDMA_SetTransferAddr(PDMA0,SPI_SLAVE_TX_DMA_CH, (uint32_t)SlaveTxPtr, PDMA_SAR_INC, (uint32_t)&SPI1->TX, PDMA_DAR_FIX);
     /* Set request source; set basic mode. */
     PDMA_SetTransferMode(PDMA0,SPI_SLAVE_TX_DMA_CH, PDMA_SPI1_TX, FALSE, 0);
     /* Single request type. SPI only support PDMA single request type. */
@@ -203,12 +210,12 @@ void SpiLoopTest_WithPDMA(void)
                     /* Check the transfer data */
                     for(u32DataCount = 0; u32DataCount < TEST_COUNT; u32DataCount++)
                     {
-                        if(g_au32MasterToSlaveTestPattern[u32DataCount] != g_au32SlaveRxBuffer[u32DataCount])
+                        if(*(uint32_t *)((UINT)MasterTxPtr + u32DataCount) != *(uint32_t *)((UINT)SlaveRxPtr + u32DataCount))
                         {
                             i32Err = 1;
                             break;
                         }
-                        if(g_au32SlaveToMasterTestPattern[u32DataCount] != g_au32MasterRxBuffer[u32DataCount])
+                        if(*(uint32_t *)((UINT)SlaveTxPtr + u32DataCount) != *(uint32_t *)((UINT)MasterRxPtr + u32DataCount))
                         {
                             i32Err = 1;
                             break;
@@ -221,8 +228,8 @@ void SpiLoopTest_WithPDMA(void)
                     /* Source data initiation */
                     for(u32DataCount = 0; u32DataCount < TEST_COUNT; u32DataCount++)
                     {
-                        g_au32MasterToSlaveTestPattern[u32DataCount]++;
-                        g_au32SlaveToMasterTestPattern[u32DataCount]++;
+                        MasterTxPtr[u32DataCount]++;
+                        SlaveTxPtr[u32DataCount]++;
                     }
                     /* Re-trigger */
                     /* Slave PDMA TX channel configuration */
