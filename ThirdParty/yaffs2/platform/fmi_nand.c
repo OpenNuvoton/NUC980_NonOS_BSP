@@ -140,27 +140,33 @@ static void nuvoton_nand_command(struct mtd_info *mtd, unsigned int command, int
 
     outpw(REG_NANDCMD, command & 0xff);
 
-    if (column != -1 || page_addr != -1) {
-        if (column != -1) {
-            outpw(REG_NANDADDR, column&0xff);
-            if ( page_addr != -1 )
-                outpw(REG_NANDADDR, column >> 8);
-            else
-                outpw(REG_NANDADDR, (column >> 8) | ENDADDR);
-        }
+    if (command == NAND_CMD_READID)
+    {
+        outpw(REG_NANDADDR, ENDADDR);
+    }
+    else
+    {
+        if (column != -1 || page_addr != -1) {
+            if (column != -1) {
+                outpw(REG_NANDADDR, column&0xff);
+                if ( page_addr != -1 )
+                    outpw(REG_NANDADDR, column >> 8);
+                else
+                    outpw(REG_NANDADDR, (column >> 8) | ENDADDR);
+            }
 
-        if (page_addr != -1) {
-            outpw(REG_NANDADDR, page_addr&0xFF);
+            if (page_addr != -1) {
+                outpw(REG_NANDADDR, page_addr&0xFF);
 
-            if ( chip->chipsize > (128 << 20) ) {
-                outpw(REG_NANDADDR, (page_addr >> 8)&0xFF);
-                outpw(REG_NANDADDR, ((page_addr >> 16)&0xFF)|ENDADDR);
-            } else {
-                outpw(REG_NANDADDR, ((page_addr >> 8)&0xFF)|ENDADDR);
+                if ( chip->chipsize > (128 << 20) ) {
+                    outpw(REG_NANDADDR, (page_addr >> 8)&0xFF);
+                    outpw(REG_NANDADDR, ((page_addr >> 16)&0xFF)|ENDADDR);
+                } else {
+                    outpw(REG_NANDADDR, ((page_addr >> 8)&0xFF)|ENDADDR);
+                }
             }
         }
     }
-
     switch (command) {
     case NAND_CMD_CACHEDPROG:
     case NAND_CMD_PAGEPROG:
