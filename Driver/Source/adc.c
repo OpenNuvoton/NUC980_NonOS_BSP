@@ -69,7 +69,7 @@ INT adcOpen2(uint32_t freqKhz)
 {
     uint32_t div;
     /* Enable ADC engine clock */
-    outpw(REG_CLK_PCLKEN1, 1<<24);
+    outpw(REG_CLK_PCLKEN1, inpw(REG_CLK_PCLKEN1) | (1<<24));
 
     /* Reset the ADC IP */
     outpw(REG_SYS_APBIPRST1, (1<<24));
