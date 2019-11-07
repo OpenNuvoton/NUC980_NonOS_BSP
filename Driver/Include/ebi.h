@@ -26,6 +26,75 @@ extern "C"
   @{
 */
 
+#define EBI                  ((EBI_T *)   EBI_BA)
+
+/*---------------------- External Bus Interface Controller -------------------------*/
+/**
+    @addtogroup EBI External Bus Interface Controller(EBI)
+    Memory Mapped Structure for EBI Controller
+@{ */
+
+
+typedef struct
+{
+
+    __IO uint32_t CTL0;          /* Offset: 0x00  External Bus Interface Bank0 Control Register */
+    __IO uint32_t TCTL0;         /* Offset: 0x04  External Bus Interface Bank0 Timing Control Register */
+    __I  uint32_t RESERVE0[2];
+    __IO uint32_t CTL1;          /* Offset: 0x10  External Bus Interface Bank1 Control Register */
+    __IO uint32_t TCTL1;         /* Offset: 0x14  External Bus Interface Bank1 Timing Control Register */
+    __I  uint32_t RESERVE1[2];
+    __IO uint32_t CTL2;          /* Offset: 0x20  External Bus Interface Bank1 Control Register */
+    __IO uint32_t TCTL2;         /* Offset: 0x24  External Bus Interface Bank1 Timing Control Register */
+
+} EBI_T;
+
+
+
+/**
+    @addtogroup EBI_CONST EBI Bit Field Definition
+    Constant Definitions for EBI Controller
+@{ */
+
+#define EBI_CTL_EN_Pos                  (0)                                               /*!< EBI_T::CTL: EN Position \hideinitializer */
+#define EBI_CTL_EN_Msk                  (0x1ul << EBI_CTL_EN_Pos)                         /*!< EBI_T::CTL: EN Mask \hideinitializer */
+
+#define EBI_CTL_DW16_Pos                (1)                                               /*!< EBI_T::CTL: DW16 Position \hideinitializer */
+#define EBI_CTL_DW16_Msk                (0x1ul << EBI_CTL_DW16_Pos)                       /*!< EBI_T::CTL: DW16 Mask \hideinitializer */
+
+#define EBI_CTL_CSPOLINV_Pos            (2)                                               /*!< EBI_T::CTL: CSPOLINV Position \hideinitializer */
+#define EBI_CTL_CSPOLINV_Msk            (0x1ul << EBI_CTL_CSPOLINV_Pos)                   /*!< EBI_T::CTL: CSPOLINV Mask \hideinitializer */
+
+#define EBI_CTL_CACCESS_Pos             (4)                                               /*!< EBI EBICON: CS_PINV Position \hideinitializer */
+#define EBI_CTL_CACCESS_Msk             (1ul << EBI_CTL_CACCESS_Pos)                      /*!< EBI EBICON: CS_PINV Mask \hideinitializer */
+
+#define EBI_CTL_MCLKDIV_Pos             (8)                                               /*!< EBI_T::CTL: MCLKDIV Position \hideinitializer */
+#define EBI_CTL_MCLKDIV_Msk             (0x7ul << EBI_CTL_MCLKDIV_Pos)                    /*!< EBI_T::CTL: MCLKDIV Mask \hideinitializer */
+
+#define EBI_CTL_WBUFEN_Pos              (24)                                              /*!< EBI_T::CTL: WBUFEN Position \hideinitializer */
+#define EBI_CTL_WBUFEN_Msk              (0x1ul << EBI_CTL_WBUFEN_Pos)                     /*!< EBI_T::CTL: WBUFEN Mask \hideinitializer */
+
+#define EBI_TCTL_TACC_Pos               (3)                                               /*!< EBI_T::TCTL: TACC Position \hideinitializer */
+#define EBI_TCTL_TACC_Msk               (0x1ful << EBI_TCTL_TACC_Pos)                     /*!< EBI_T::TCTL: TACC Mask \hideinitializer */
+
+#define EBI_TCTL_TAHD_Pos               (8)                                               /*!< EBI_T::TCTL: TAHD Position \hideinitializer */
+#define EBI_TCTL_TAHD_Msk               (0x7ul << EBI_TCTL_TAHD_Pos)                      /*!< EBI_T::TCTL: TAHD Mask \hideinitializer */
+
+#define EBI_TCTL_W2X_Pos                (12)                                              /*!< EBI_T::TCTL: W2X Position \hideinitializer */
+#define EBI_TCTL_W2X_Msk                (0xful << EBI_TCTL_W2X_Pos)                       /*!< EBI_T::TCTL: W2X Mask \hideinitializer */
+
+#define EBI_TCTL_RAHDOFF_Pos            (22)                                              /*!< EBI_T::TCTL: RAHDOFF Position \hideinitializer */
+#define EBI_TCTL_RAHDOFF_Msk            (0x1ul << EBI_TCTL_RAHDOFF_Pos)                   /*!< EBI_T::TCTL: RAHDOFF Mask \hideinitializer */
+
+#define EBI_TCTL_WAHDOFF_Pos            (23)                                              /*!< EBI_T::TCTL: WAHDOFF Position \hideinitializer */
+#define EBI_TCTL_WAHDOFF_Msk            (0x1ul << EBI_TCTL_WAHDOFF_Pos)                   /*!< EBI_T::TCTL: WAHDOFF Mask \hideinitializer */
+
+#define EBI_TCTL_R2R_Pos                (24)                                              /*!< EBI_T::TCTL: R2R Position \hideinitializer */
+#define EBI_TCTL_R2R_Msk                (0xful << EBI_TCTL_R2R_Pos)                       /*!< EBI_T::TCTL: R2R Mask \hideinitializer */
+
+/**@}*/ /* EBI_CONST */
+/**@}*/ /* end of EBI register group */
+
 /*---------------------------------------------------------------------------------------------------------*/
 /*  Miscellaneous Constant Definitions                                                                     */
 /*---------------------------------------------------------------------------------------------------------*/
