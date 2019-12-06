@@ -6,6 +6,7 @@
  * @copyright (C) 2016 Nuvoton Technology Corp. All rights reserved.
 *****************************************************************************/
 #include "can.h"
+#include "sys.h"
 
 /** @addtogroup Standard_Driver Standard Driver
   @{
@@ -23,10 +24,6 @@
 
 static uint8_t gu8LockCanIf[4ul][2ul] = {0ul};    /* The chip have 4 CANs. */
 
-
-#define SystemCoreClock 12000000ul
-
-
 #define RETRY_COUNTS    (0x10000000ul)
 
 #define TSEG1_MIN 2ul
@@ -40,6 +37,8 @@ static uint8_t gu8LockCanIf[4ul][2ul] = {0ul};    /* The chip have 4 CANs. */
 
 /* #define DEBUG_PRINTF printf */
 #define DEBUG_PRINTF(...)
+
+static uint32_t CAN_Clock = 75000000ul;
 
 static uint32_t LockIF(CAN_T *tCAN);
 static uint32_t LockIF_TL(CAN_T *tCAN);
@@ -305,7 +304,7 @@ uint32_t CAN_GetCANBitRate(CAN_T *tCAN)
     u32Tseg2 = (tCAN->BTIME & CAN_BTIME_TSEG2_Msk) >> CAN_BTIME_TSEG2_Pos;
     u32Bpr   = (tCAN->BTIME & CAN_BTIME_BRP_Msk) | (tCAN->BRPE << 6ul);
 
-    return (SystemCoreClock / (u32Bpr + 1ul) / (u32Tseg1 + u32Tseg2 + 3ul));
+    return (CAN_Clock / (u32Bpr + 1ul) / (u32Tseg1 + u32Tseg2 + 3ul));
 }
 
 /**
@@ -740,29 +739,9 @@ uint32_t CAN_SetBaudRate(CAN_T *tCAN, uint32_t u32BaudRate)
 
     CAN_EnterInitMode(tCAN, (uint8_t)0);
 
-    //SystemCoreClockUpdate();
-    if(tCAN == CAN0)
-    {
-        //u64PCLK_DIV = (uint64_t)(CLK->PCLKDIV & CLK_PCLKDIV_APB0DIV_Msk);
-        //u64PCLK_DIV = (uint64_t)(1 << u64PCLK_DIV);
-    }
-    else if(tCAN == CAN1)
-    {
-        //u64PCLK_DIV = (uint64_t)((CLK->PCLKDIV & CLK_PCLKDIV_APB1DIV_Msk) >> CLK_PCLKDIV_APB1DIV_Pos);
-        //u64PCLK_DIV = (uint64_t)(1 << u64PCLK_DIV);
-    }
-    else if(tCAN == CAN2)
-    {
-        //u64PCLK_DIV = (uint64_t)((CLK->PCLKDIV & CLK_PCLKDIV_APB1DIV_Msk) >> CLK_PCLKDIV_APB1DIV_Pos);
-        //u64PCLK_DIV = (uint64_t)(1 << u64PCLK_DIV);
-    }
-    else if(tCAN == CAN3)
-    {
-        //u64PCLK_DIV = (uint64_t)((CLK->PCLKDIV & CLK_PCLKDIV_APB1DIV_Msk) >> CLK_PCLKDIV_APB1DIV_Pos);
-        //u64PCLK_DIV = (uint64_t)(1 << u64PCLK_DIV);
-    }
+    CAN_Clock = sysGetClock(SYS_PCLK2);
 
-    clock_freq = SystemCoreClock / u64PCLK_DIV;
+    clock_freq = CAN_Clock / u64PCLK_DIV;
 
     if(u32BaudRate >= (uint32_t)1000000)
     {
