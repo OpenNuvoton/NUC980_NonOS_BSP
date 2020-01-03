@@ -247,7 +247,7 @@ typedef struct
 */
 
 // function definition
-INT pwmInit(void);
+INT pwmInit(const INT nTimerIdentity);
 INT pwmExit(void);
 INT pwmOpen(const INT nTimerIdentity);
 INT pwmClose(const INT nTimerIdentity);

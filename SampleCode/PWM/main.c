@@ -103,7 +103,7 @@ INT PWM_Timer(INT timer_num)
     PWMSTATUS.PDR=0;
     PWMSTATUS.InterruptFlag=FALSE;
 
-    pwmInit();
+    pwmInit(timer_num);
     pwmOpen(timer_num);
 
     // Change PWM Timer setting
@@ -212,7 +212,7 @@ INT PWM_TimerDZ(INT timer_num)
     PWMSTATUS1.PDR=0;
     PWMSTATUS1.InterruptFlag=FALSE;
 
-    pwmInit();
+    pwmInit(timer_num);
     pwmOpen(timer_num);
     pwmOpen(timer_num+1);
     if(timer_num == PWM0_TIMER0)

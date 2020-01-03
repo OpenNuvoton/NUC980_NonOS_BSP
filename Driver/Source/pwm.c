@@ -27,7 +27,8 @@
 //Internal function definition
 /// @cond HIDDEN_SYMBOLS
 
-void pwmISR(PVOID pvParam);
+void pwm0ISR(PVOID pvParam);
+void pwm1ISR(PVOID pvParam);
 
 
 static INT pwmInitGPIO(const INT nTimerIdentity, const INT nValue);
@@ -49,7 +50,8 @@ static INT pwmSetPIER(const INT nTimerIdentity, const INT value);
 static INT pwmCleanPIIR(const INT nTimerIdentity);
 
 //Global variable
-static BOOL bPWMIRQFlag=FALSE;  //IRQ enable flag, set after PWM IRQ enable
+static BOOL bPWM0IRQFlag = FALSE; //IRQ enable flag, set after PWM0 IRQ enable
+static BOOL bPWM1IRQFlag = FALSE; //IRQ enable flag, set after PWM1 IRQ enable
 static BOOL bPWMTimerOpenStatus[PWM_TIMER_NUM]; //timer flag which set after open(for disable IRQ decision)
 static BOOL bPWMTimerStartStatus[PWM_TIMER_NUM]; //timer flag which set after Start count(to avoid incorrectly stop procedure)
 static BOOL bPWMTimerMode[PWM_TIMER_NUM]; //PWM timer toggle/one shot mode
@@ -60,15 +62,31 @@ static BOOL volatile bPWMIntFlag[PWM_TIMER_NUM]; //interrupt flag which set by I
 /**
   * @brief The init function of PWM device driver
   */
-INT pwmInit(void)
+INT pwmInit(const INT nTimerIdentity)
 {
     UINT temp;
-    // Enable PWM clock
-    temp = inpw(REG_CLK_PCLKEN1);
-    temp = temp | 0x4000000;
-    outpw(REG_CLK_PCLKEN1, temp);
 
-    sysInstallISR(IRQ_LEVEL_1, IRQ_PWM0, (PVOID)pwmISR);
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
+    {
+        return pwmInvalidTimerChannel; // nPWMIdentity value error
+    }
+
+    // Enable PWM clock
+    if(nTimerIdentity <= PWM0_TIMER3)
+    {
+        temp = inpw(REG_CLK_PCLKEN1);
+        temp = temp | 0x4000000;
+        outpw(REG_CLK_PCLKEN1, temp);
+        sysInstallISR(IRQ_LEVEL_1, IRQ_PWM0, (PVOID)pwm0ISR);
+    }
+    else  // PWM1
+    {
+        temp = inpw(REG_CLK_PCLKEN1);
+        temp = temp | 0x8000000;
+        outpw(REG_CLK_PCLKEN1, temp);
+        sysInstallISR(IRQ_LEVEL_1, IRQ_PWM1, (PVOID)pwm1ISR);
+    }
+
     sysSetLocalInterrupt(ENABLE_IRQ);  // Enable CPSR I bit
 
     return 0;
@@ -91,22 +109,30 @@ INT pwmExit(void)
   */
 INT pwmOpen(const INT nTimerIdentity)
 {
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// nTimerIdentity value error
     }
+
     if(bPWMTimerOpenStatus[nTimerIdentity] == TRUE)
     {
         return pwmTimerBusy;
     }
-    if(bPWMIRQFlag == FALSE)
-    {
 
+    if((nTimerIdentity < PWM1_TIMER0) && (bPWM0IRQFlag == FALSE))
+    {
         sysEnableInterrupt(IRQ_PWM0);
 
-        bPWMIRQFlag=TRUE;
+        bPWM0IRQFlag = TRUE;
     }
-    bPWMTimerOpenStatus[nTimerIdentity]=TRUE;
+    else if((nTimerIdentity > PWM0_TIMER3) && (bPWM1IRQFlag == FALSE))
+    {
+        sysEnableInterrupt(IRQ_PWM1);
+
+        bPWM1IRQFlag = TRUE;
+    }
+
+    bPWMTimerOpenStatus[nTimerIdentity] = TRUE;
 
     // Set PWM timer default value(CSR->PPR->PCR->CMR->CNR)
     pwmInitTimer(nTimerIdentity);
@@ -134,35 +160,55 @@ INT pwmOpen(const INT nTimerIdentity)
 INT pwmClose(const INT nTimerIdentity)
 {
     INT nLoop;
-    BOOL uAllTimerClose=TRUE;
-    if( nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX )
+    BOOL uAllPWM0TimerClose = TRUE;
+    BOOL uAllPWM1TimerClose = TRUE;
+
+    if( nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX )
     {
         return pwmInvalidTimerChannel;// nTimerIdentity value error
     }
+
     if(bPWMTimerOpenStatus[nTimerIdentity] == FALSE)
     {
         return pwmTimerNotOpen;
     }
+
     bPWMTimerOpenStatus[nTimerIdentity] = FALSE;
-    //Check if all timer stop, IRQ can be disable
-    for(nLoop=PWM_TIMER_MIN; nLoop<PWM_TIMER_NUM; nLoop++)
+
+    //Check if all pmw0 timer stop, IRQ can be disable
+    for(nLoop = PWM_TIMER_MIN; nLoop < PWM1_TIMER0; nLoop++)
     {
         if(bPWMTimerOpenStatus[nLoop] == TRUE)
         {
-            uAllTimerClose=FALSE;
+            uAllPWM0TimerClose = FALSE;
         }
     }
-    //All timer stop, disable IRQs
-    if(uAllTimerClose == TRUE)
-    {
 
+    //Check if all pmw1 timer stop, IRQ can be disable
+    for(nLoop = PWM1_TIMER0; nLoop < PWM_TIMER_NUM; nLoop++)
+    {
+        if(bPWMTimerOpenStatus[nLoop] == TRUE)
+        {
+            uAllPWM1TimerClose = FALSE;
+        }
+    }
+
+    //All timer stop, disable IRQs
+    if(uAllPWM0TimerClose == TRUE)
+    {
         sysDisableInterrupt(IRQ_PWM0);
-        bPWMIRQFlag=FALSE;
+        bPWM0IRQFlag = FALSE;
+    }
+
+    if(uAllPWM1TimerClose == TRUE)
+    {
+        sysDisableInterrupt(IRQ_PWM1);
+        bPWM1IRQFlag = FALSE;
     }
 
     pwmSetPIER(nTimerIdentity, PWM_DISABLE);
-    pwmCleanPIIR(nTimerIdentity);
 
+    pwmCleanPIIR(nTimerIdentity);
 
     return Successful;
 
@@ -180,31 +226,36 @@ INT pwmClose(const INT nTimerIdentity)
   */
 INT pwmRead(const INT nTimerIdentity, PUCHAR pucStatusValue, const UINT uLength)
 {
-    if( nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX )
+    if( nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX )
     {
         return pwmInvalidTimerChannel;// nTimerIdentity value error
     }
+
     if(bPWMTimerOpenStatus[nTimerIdentity] == FALSE)
     {
         return pwmTimerNotOpen;
     }
+
     if(uLength != sizeof(typePWMSTATUS))
     {
         return pwmInvalidStructLength;// Struct length error(struct type error)
     }
+
     if( sizeof(*((typePWMSTATUS *)pucStatusValue)) != sizeof(typePWMSTATUS) )
     {
         return pwmInvalidStructLength;// Struct length error(struct type error)
     }
-    ((typePWMSTATUS *)pucStatusValue)->PDR=pwmGetPDR(nTimerIdentity);
+
+    ((typePWMSTATUS *)pucStatusValue)->PDR = pwmGetPDR(nTimerIdentity);
+
     if(bPWMIntFlag[nTimerIdentity] == TRUE)
     {
-        bPWMIntFlag[nTimerIdentity]=FALSE;
-        ((typePWMSTATUS *)pucStatusValue)->InterruptFlag=TRUE;
+        bPWMIntFlag[nTimerIdentity] = FALSE;
+        ((typePWMSTATUS *)pucStatusValue)->InterruptFlag = TRUE;
     }
     else
     {
-        ((typePWMSTATUS *)pucStatusValue)->InterruptFlag=FALSE;
+        ((typePWMSTATUS *)pucStatusValue)->InterruptFlag = FALSE;
     }
 
     return Successful;
@@ -224,31 +275,37 @@ INT pwmWrite(const INT nTimerIdentity, PUCHAR pucCNRCMRValue, const UINT uLength
 {
     typePWMVALUE pwmvalue;
     INT nStatus;
-    if( nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX )
+
+    if( nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX )
     {
         return pwmInvalidTimerChannel;// nTimerIdentity value error
     }
+
     if(bPWMTimerOpenStatus[nTimerIdentity] == FALSE)
     {
         return pwmTimerNotOpen;
     }
+
     if(uLength != sizeof(typePWMVALUE))
     {
         return pwmInvalidStructLength;// Struct length error(struct type error)
     }
-    pwmvalue.value=((typePWMVALUE *)pucCNRCMRValue)->value;
-    nStatus=pwmSetCNR(nTimerIdentity, pwmvalue.field.cnr);
+
+    pwmvalue.value = ((typePWMVALUE *)pucCNRCMRValue)->value;
+    nStatus = pwmSetCNR(nTimerIdentity, pwmvalue.field.cnr);
 
     if(nStatus != Successful)
     {
         return nStatus;
     }
-    nStatus=pwmSetCMR(nTimerIdentity, pwmvalue.field.cmr);
+
+    nStatus = pwmSetCMR(nTimerIdentity, pwmvalue.field.cmr);
 
     if(nStatus != Successful)
     {
         return nStatus;
     }
+
     return Successful;
 
 }
@@ -268,94 +325,129 @@ INT pwmWrite(const INT nTimerIdentity, PUCHAR pucCNRCMRValue, const UINT uLength
 INT pwmIoctl(const INT nTimerIdentity, const UINT uCommand, const UINT uIndication, UINT uValue)
 {
     INT nStatus;
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// nTimerIdentity value error
     }
+
     if(bPWMTimerOpenStatus[nTimerIdentity] == FALSE)
     {
         return pwmTimerNotOpen;
     }
+
     switch(uCommand)
     {
     case START_PWMTIMER:
     {
-        nStatus=pwmStartTimer(nTimerIdentity);
+        nStatus = pwmStartTimer(nTimerIdentity);
         break;
     }
+
     case STOP_PWMTIMER:
     {
         // default stop method is 2
-        nStatus=pwmStopTimer(nTimerIdentity, PWM_STOP_METHOD2);
+        nStatus = pwmStopTimer(nTimerIdentity, PWM_STOP_METHOD2);
         break;
     }
+
     case SET_CSR:
     {
-        nStatus=pwmSetCSR(nTimerIdentity, uValue);
+        nStatus = pwmSetCSR(nTimerIdentity, uValue);
         break;
     }
+
     case SET_CP:
     {
-        nStatus=pwmSetCP(nTimerIdentity, uValue);
+        nStatus = pwmSetCP(nTimerIdentity, uValue);
         break;
     }
+
     case SET_DZI:
     {
-        nStatus=pwmSetDZI(nTimerIdentity, uValue);
+        nStatus = pwmSetDZI(nTimerIdentity, uValue);
         break;
     }
+
     case SET_INVERTER:
     {
-        nStatus=pwmSetInverter(nTimerIdentity, uValue);
+        nStatus = pwmSetInverter(nTimerIdentity, uValue);
         break;
     }
+
     case SET_MODE:
     {
-        nStatus=pwmSetMode(nTimerIdentity, uValue);
+        nStatus = pwmSetMode(nTimerIdentity, uValue);
         break;
     }
+
     case ENABLE_DZ_GENERATOR:
     {
-        nStatus=pwmSetDZGenerator(nTimerIdentity, PWM_ENABLE);
+        nStatus = pwmSetDZGenerator(nTimerIdentity, PWM_ENABLE);
         break;
     }
+
     case DISABLE_DZ_GENERATOR:
     {
-        nStatus=pwmSetDZGenerator(nTimerIdentity, PWM_DISABLE);
+        nStatus = pwmSetDZGenerator(nTimerIdentity, PWM_DISABLE);
         break;
     }
+
     case ENABLE_PWMGPIOOUTPUT:
     {
-        nStatus=pwmInitGPIO(nTimerIdentity, uValue);
+        nStatus = pwmInitGPIO(nTimerIdentity, uValue);
         break;
     }
+
     default:
     {
         return pwmInvalidIoctlCommand;
     }
     }
+
     return nStatus;
 }
-
 
 /// @cond HIDDEN_SYMBOLS
 
 /**
-  * @brief The interrupt service routines of PWM
+  * @brief The interrupt service routines of PWM0
   * @param[in] pvParam IRQ Parameter(not use in PWM)
   */
-VOID pwmISR(PVOID pvParam)
+VOID pwm0ISR(PVOID pvParam)
 {
     INT i;
 
     UINT32 uRegisterValue = 0;
     uRegisterValue = inpw(REG_PWM0_PIIR);// Get PIIR value
-    for(i = 0; i < PWM_TIMER_NUM ; i++)
+
+    for(i = 0; i < PWM1_TIMER0 ; i++)
     {
         if(uRegisterValue & (1 << i))
         {
             bPWMIntFlag[i] = 1;
             outpw(REG_PWM0_PIIR, (1 << i));
+        }
+    }
+}
+
+/**
+  * @brief The interrupt service routines of PWM1
+  * @param[in] pvParam IRQ Parameter(not use in PWM)
+  */
+VOID pwm1ISR(PVOID pvParam)
+{
+    INT i;
+
+    UINT32 uRegisterValue = 0;
+    uRegisterValue = inpw(REG_PWM1_PIIR);// Get PIIR value
+
+    for(i = PWM1_TIMER0; i < PWM_TIMER_NUM ; i++)
+    {
+        if(uRegisterValue & (1 << (i-PWM1_TIMER0)))
+        {
+            bPWMIntFlag[i] = 1;
+            outpw(REG_PWM1_PIIR, (1 << (i-PWM1_TIMER0)));
         }
     }
 }
@@ -370,9 +462,9 @@ VOID pwmISR(PVOID pvParam)
   */
 static INT pwmInitGPIO(const INT nTimerIdentity, const INT nValue)
 {
-    UINT temp=0;
+    UINT temp = 0;
 
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// Timer_num value error
     }
@@ -631,13 +723,14 @@ static INT pwmInitTimer(const INT nTimerIdentity)
 {
     typePPR PWMPPR;
     INT nStatus;
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// nTimerIdentity value error
     }
 
     //Set CSR
-    nStatus=pwmSetCSR(nTimerIdentity, DEFAULT_CSR);
+    nStatus = pwmSetCSR(nTimerIdentity, DEFAULT_CSR);
 
     if(nStatus != Successful)
     {
@@ -645,7 +738,15 @@ static INT pwmInitTimer(const INT nTimerIdentity)
     }
 
     //Set PPR
-    PWMPPR.value=(UINT)inpw(REG_PWM0_PPR);
+    if(nTimerIdentity < PWM1_TIMER0)
+    {
+        PWMPPR.value = (UINT)inpw(REG_PWM0_PPR);
+    }
+    else
+    {
+        PWMPPR.value = (UINT)inpw(REG_PWM1_PPR);
+    }
+
     switch(nTimerIdentity)
     {
     case PWM0_TIMER0:
@@ -654,77 +755,93 @@ static INT pwmInitTimer(const INT nTimerIdentity)
         {
             pwmSetCP(nTimerIdentity, DEFAULT_CP);
         }
+
         break;
     }
+
     case PWM0_TIMER1:
     {
         if(PWMPPR.field.cp0 == 0)
         {
             pwmSetCP(nTimerIdentity, DEFAULT_CP);
         }
+
         break;
     }
+
     case PWM0_TIMER2:
     {
         if(PWMPPR.field.cp1 == 0)
         {
             pwmSetCP(nTimerIdentity, DEFAULT_CP);
         }
+
         break;
     }
+
     case PWM0_TIMER3:
     {
         if(PWMPPR.field.cp1 == 0)
         {
             pwmSetCP(nTimerIdentity, DEFAULT_CP);
         }
+
         break;
     }
+
     case PWM1_TIMER0:
     {
         if(PWMPPR.field.cp0 == 0)
         {
             pwmSetCP(nTimerIdentity, DEFAULT_CP);
         }
+
         break;
     }
+
     case PWM1_TIMER1:
     {
         if(PWMPPR.field.cp0 == 0)
         {
             pwmSetCP(nTimerIdentity, DEFAULT_CP);
         }
+
         break;
     }
+
     case PWM1_TIMER2:
     {
         if(PWMPPR.field.cp1 == 0)
         {
             pwmSetCP(nTimerIdentity, DEFAULT_CP);
         }
+
         break;
     }
+
     case PWM1_TIMER3:
     {
         if(PWMPPR.field.cp1 == 0)
         {
             pwmSetCP(nTimerIdentity, DEFAULT_CP);
         }
+
         break;
     }
     }
 
     //Set PCR
-    nStatus=pwmSetMode(nTimerIdentity, DEFAULT_MODE);
+    nStatus = pwmSetMode(nTimerIdentity, DEFAULT_MODE);
 
     if(nStatus != Successful)
     {
         return nStatus;
     }
+
     bPWMTimerMode[nTimerIdentity] = DEFAULT_MODE;
 
     //Set CMR
-    nStatus=pwmSetCMR(nTimerIdentity, DEFAULT_CMR);
+    nStatus = pwmSetCMR(nTimerIdentity, DEFAULT_CMR);
 
     if(nStatus != Successful)
     {
@@ -732,7 +849,7 @@ static INT pwmInitTimer(const INT nTimerIdentity)
     }
 
     //Set CNR
-    nStatus=pwmSetCNR(nTimerIdentity, DEFAULT_CNR);
+    nStatus = pwmSetCNR(nTimerIdentity, DEFAULT_CNR);
 
     if(nStatus != Successful)
     {
@@ -752,11 +869,13 @@ static INT pwmInitTimer(const INT nTimerIdentity)
   */
 static INT pwmStartTimer(const INT nTimerIdentity)
 {
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// Timer_num value error
     }
+
     pwmSetTimerState(nTimerIdentity, PWM_ENABLE);
+
     if(bPWMTimerMode[nTimerIdentity] == PWM_TOGGLE)
     {
         bPWMTimerStartStatus[nTimerIdentity] = TRUE;
@@ -777,21 +896,25 @@ static INT pwmStartTimer(const INT nTimerIdentity)
 static INT pwmStopTimer(const INT nTimerIdentity, INT nMethod)
 {
     typeCNR PWMCNR;
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         // Timer_num value error
         return pwmInvalidTimerChannel;
     }
+
     //Can't stop before open PWM timer
     if(bPWMTimerOpenStatus[nTimerIdentity] == FALSE)
     {
         return Successful;
     }
+
     // one shot mode didn't need stop procedure
     if(bPWMTimerMode[nTimerIdentity] == PWM_ONESHOT)
     {
         return Successful;
     }
+
     // Timer stop already, no need to stop again
     if(bPWMTimerStartStatus[nTimerIdentity] == FALSE)
     {
@@ -799,8 +922,16 @@ static INT pwmStopTimer(const INT nTimerIdentity, INT nMethod)
     }
 
     // Set CNR as 0
-    PWMCNR.field.cnr=0;
-    outpw(REG_PWM0_CNR0+(PWM_OFFSET*nTimerIdentity), PWMCNR.value);
+    PWMCNR.field.cnr = 0;
+
+    if(nTimerIdentity < PWM1_TIMER0)
+    {
+        outpw(REG_PWM0_CNR0 + (PWM_OFFSET * nTimerIdentity), PWMCNR.value);
+    }
+    else
+    {
+        outpw(REG_PWM1_CNR0 + (PWM_OFFSET * (nTimerIdentity - PWM1_TIMER0)), PWMCNR.value);
+    }
 
     switch(nMethod)
     {
@@ -811,13 +942,15 @@ static INT pwmStopTimer(const INT nTimerIdentity, INT nMethod)
             if(pwmGetPDR(nTimerIdentity) == 0)   // Wait PDR reach to 0
             {
                 pwmSetTimerState(nTimerIdentity, PWM_DISABLE);// Disable pwm timer
-                bPWMIntFlag[nTimerIdentity]=FALSE;
+                bPWMIntFlag[nTimerIdentity] = FALSE;
                 bPWMTimerStartStatus[nTimerIdentity] = FALSE;
                 break;
             }
         }
+
         break;
     }
+
     case PWM_STOP_METHOD2:
     {
         while(1)
@@ -830,8 +963,10 @@ static INT pwmStopTimer(const INT nTimerIdentity, INT nMethod)
                 break;
             }
         }
+
         break;
     }
+
     /*case PWM_STOP_METHOD3:
     {
         pwmSetPCRState(nTimerIdentity, PWM_DISABLE);// Disable pwm timer
@@ -859,69 +994,81 @@ static INT pwmStopTimer(const INT nTimerIdentity, INT nMethod)
 static INT pwmSetCP(const INT nTimerIdentity, const INT nValue)
 {
     typePPR PWMPPR;
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// Timer_num value error
     }
-    if(nValue<CP_MIN || nValue>CP_MAX)
+
+    if(nValue < CP_MIN || nValue > CP_MAX)
     {
         return pwmInvalidCPValue;// CP value error
     }
 
     if (nTimerIdentity < PWM1_TIMER0)
     {
-        PWMPPR.value=(UINT)inpw(REG_PWM0_PPR);
+        PWMPPR.value = (UINT)inpw(REG_PWM0_PPR);
+
         switch(nTimerIdentity)
         {
         case PWM0_TIMER0:
         {
-            PWMPPR.field.cp0=nValue;
+            PWMPPR.field.cp0 = nValue;
             break;
         }
+
         case PWM0_TIMER1:
         {
-            PWMPPR.field.cp0=nValue;
+            PWMPPR.field.cp0 = nValue;
             break;
         }
+
         case PWM0_TIMER2:
         {
-            PWMPPR.field.cp1=nValue;
+            PWMPPR.field.cp1 = nValue;
             break;
         }
+
         case PWM0_TIMER3:
         {
-            PWMPPR.field.cp1=nValue;
+            PWMPPR.field.cp1 = nValue;
             break;
         }
         }
+
         outpw(REG_PWM0_PPR, PWMPPR.value);
     }
     else
     {
-        PWMPPR.value=(UINT)inpw(REG_PWM1_PPR);
+        PWMPPR.value = (UINT)inpw(REG_PWM1_PPR);
+
         switch(nTimerIdentity)
         {
         case PWM1_TIMER0:
         {
-            PWMPPR.field.cp0=nValue;
+            PWMPPR.field.cp0 = nValue;
             break;
         }
+
         case PWM1_TIMER1:
         {
-            PWMPPR.field.cp0=nValue;
+            PWMPPR.field.cp0 = nValue;
             break;
         }
+
         case PWM1_TIMER2:
         {
-            PWMPPR.field.cp1=nValue;
+            PWMPPR.field.cp1 = nValue;
             break;
         }
+
         case PWM1_TIMER3:
         {
-            PWMPPR.field.cp1=nValue;
+            PWMPPR.field.cp1 = nValue;
             break;
         }
         }
+
         outpw(REG_PWM1_PPR, PWMPPR.value);
     }
 
@@ -939,69 +1086,81 @@ static INT pwmSetCP(const INT nTimerIdentity, const INT nValue)
 static INT pwmSetDZI(const INT nTimerIdentity, const INT nValue)
 {
     typePPR PWMPPR;
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// Timer_num value error
     }
-    if(nValue<DZI_MIN || nValue>DZI_MAX)
+
+    if(nValue < DZI_MIN || nValue > DZI_MAX)
     {
         return pwmInvalidDZIValue;// CSR value error
     }
 
-    if (nTimerIdentity<PWM0_TIMER0)
+    if (nTimerIdentity < PWM0_TIMER0)
     {
-        PWMPPR.value=(UINT)inpw(REG_PWM0_PPR);
+        PWMPPR.value = (UINT)inpw(REG_PWM0_PPR);
+
         switch(nTimerIdentity)
         {
         case PWM0_TIMER0:
         {
-            PWMPPR.field.dzi0=nValue;
+            PWMPPR.field.dzi0 = nValue;
             break;
         }
+
         case PWM0_TIMER1:
         {
-            PWMPPR.field.dzi0=nValue;
+            PWMPPR.field.dzi0 = nValue;
             break;
         }
+
         case PWM0_TIMER2:
         {
-            PWMPPR.field.dzi1=nValue;
+            PWMPPR.field.dzi1 = nValue;
             break;
         }
+
         case PWM0_TIMER3:
         {
-            PWMPPR.field.dzi1=nValue;
+            PWMPPR.field.dzi1 = nValue;
             break;
         }
         }
+
         outpw(REG_PWM0_PPR, PWMPPR.value);
     }
     else
     {
-        PWMPPR.value=(UINT)inpw(REG_PWM1_PPR);
+        PWMPPR.value = (UINT)inpw(REG_PWM1_PPR);
+
         switch(nTimerIdentity)
         {
         case PWM1_TIMER0:
         {
-            PWMPPR.field.dzi0=nValue;
+            PWMPPR.field.dzi0 = nValue;
             break;
         }
+
         case PWM1_TIMER1:
         {
-            PWMPPR.field.dzi0=nValue;
+            PWMPPR.field.dzi0 = nValue;
             break;
         }
+
         case PWM1_TIMER2:
         {
-            PWMPPR.field.dzi1=nValue;
+            PWMPPR.field.dzi1 = nValue;
             break;
         }
+
         case PWM1_TIMER3:
         {
-            PWMPPR.field.dzi1=nValue;
+            PWMPPR.field.dzi1 = nValue;
             break;
         }
         }
+
         outpw(REG_PWM1_PPR, PWMPPR.value);
     }
 
@@ -1018,71 +1177,84 @@ static INT pwmSetDZI(const INT nTimerIdentity, const INT nValue)
 static INT pwmSetCSR(const INT nTimerIdentity, const INT nValue)
 {
     typeCSR PWMCSR;
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// Timer_num value error
     }
-    if(nValue<CSR_MIN || nValue>CSR_MAX)
+
+    if(nValue < CSR_MIN || nValue > CSR_MAX)
     {
         return pwmInvalidCSRValue;// CSR value error
     }
 
-    if(nTimerIdentity<PWM1_TIMER0)
+    if(nTimerIdentity < PWM1_TIMER0)
     {
-        PWMCSR.value=(UINT)inpw(REG_PWM0_CSR);
+        PWMCSR.value = (UINT)inpw(REG_PWM0_CSR);
+
         switch(nTimerIdentity)
         {
         case PWM0_TIMER0:
         {
-            PWMCSR.field.csr0=nValue;
+            PWMCSR.field.csr0 = nValue;
             break;
         }
+
         case PWM0_TIMER1:
         {
-            PWMCSR.field.csr1=nValue;
+            PWMCSR.field.csr1 = nValue;
             break;
         }
+
         case PWM0_TIMER2:
         {
-            PWMCSR.field.csr2=nValue;
+            PWMCSR.field.csr2 = nValue;
             break;
         }
+
         case PWM0_TIMER3:
         {
-            PWMCSR.field.csr3=nValue;
+            PWMCSR.field.csr3 = nValue;
             break;
         }
         }
+
         outpw(REG_PWM0_CSR, PWMCSR.value);
     }
     else
     {
-        PWMCSR.value=(UINT)inpw(REG_PWM1_CSR);
+        PWMCSR.value = (UINT)inpw(REG_PWM1_CSR);
+
         switch(nTimerIdentity)
         {
         case PWM1_TIMER0:
         {
-            PWMCSR.field.csr0=nValue;
+            PWMCSR.field.csr0 = nValue;
             break;
         }
+
         case PWM1_TIMER1:
         {
-            PWMCSR.field.csr1=nValue;
+            PWMCSR.field.csr1 = nValue;
             break;
         }
+
         case PWM1_TIMER2:
         {
-            PWMCSR.field.csr2=nValue;
+            PWMCSR.field.csr2 = nValue;
             break;
         }
+
         case PWM1_TIMER3:
         {
-            PWMCSR.field.csr3=nValue;
+            PWMCSR.field.csr3 = nValue;
             break;
         }
         }
+
         outpw(REG_PWM1_CSR, PWMCSR.value);
     }
+
     return Successful;
 }
 
@@ -1098,70 +1270,84 @@ static INT pwmSetCSR(const INT nTimerIdentity, const INT nValue)
 static INT pwmSetDZGenerator(const INT nTimerIdentity, INT nStatus)
 {
     typePCR PWMPCR;
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// Timer_num value error
     }
+
     if(nStatus != PWMDZG_ENABLE && nStatus != PWMDZG_DISABLE)
     {
         return pwmInvalidDZGStatus;// PCR inverter value error
     }
-    if (nTimerIdentity<PWM1_TIMER0)
+
+    if (nTimerIdentity < PWM1_TIMER0)
     {
-        PWMPCR.value=(UINT)inpw(REG_PWM0_PCR);
+        PWMPCR.value = (UINT)inpw(REG_PWM0_PCR);
+
         switch(nTimerIdentity)
         {
         case PWM0_TIMER0:
         {
-            PWMPCR.field.grpup0_dzen=nStatus;
+            PWMPCR.field.grpup0_dzen = nStatus;
             break;
         }
+
         case PWM0_TIMER1:
         {
-            PWMPCR.field.grpup0_dzen=nStatus;
+            PWMPCR.field.grpup0_dzen = nStatus;
             break;
         }
+
         case PWM0_TIMER2:
         {
-            PWMPCR.field.grpup1_dzen=nStatus;
+            PWMPCR.field.grpup1_dzen = nStatus;
             break;
         }
+
         case PWM0_TIMER3:
         {
-            PWMPCR.field.grpup1_dzen=nStatus;
+            PWMPCR.field.grpup1_dzen = nStatus;
             break;
         }
         }
+
         outpw(REG_PWM0_PCR, PWMPCR.value);
     }
     else
     {
-        PWMPCR.value=(UINT)inpw(REG_PWM1_PCR);
+        PWMPCR.value = (UINT)inpw(REG_PWM1_PCR);
+
         switch(nTimerIdentity)
         {
         case PWM1_TIMER0:
         {
-            PWMPCR.field.grpup0_dzen=nStatus;
+            PWMPCR.field.grpup0_dzen = nStatus;
             break;
         }
+
         case PWM1_TIMER1:
         {
-            PWMPCR.field.grpup0_dzen=nStatus;
+            PWMPCR.field.grpup0_dzen = nStatus;
             break;
         }
+
         case PWM1_TIMER2:
         {
-            PWMPCR.field.grpup1_dzen=nStatus;
+            PWMPCR.field.grpup1_dzen = nStatus;
             break;
         }
+
         case PWM1_TIMER3:
         {
-            PWMPCR.field.grpup1_dzen=nStatus;
+            PWMPCR.field.grpup1_dzen = nStatus;
             break;
         }
         }
+
         outpw(REG_PWM1_PCR, PWMPCR.value);
     }
+
     return Successful;
 }
 
@@ -1176,68 +1362,81 @@ static INT pwmSetDZGenerator(const INT nTimerIdentity, INT nStatus)
 static INT pwmSetTimerState(const INT nTimerIdentity, INT nStatus)
 {
     typePCR PWMPCR;
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// Timer_num value error
     }
+
     if(nStatus != PWM_ENABLE && nStatus != PWM_DISABLE)
     {
         return pwmInvalidTimerStatus;
     }
-    if (nTimerIdentity<PWM1_TIMER0)
+
+    if (nTimerIdentity < PWM1_TIMER0)
     {
-        PWMPCR.value=(UINT)inpw(REG_PWM0_PCR);
+        PWMPCR.value = (UINT)inpw(REG_PWM0_PCR);
+
         switch(nTimerIdentity)
         {
         case PWM0_TIMER0:
         {
-            PWMPCR.field.ch0_en=nStatus;
+            PWMPCR.field.ch0_en = nStatus;
             break;
         }
+
         case PWM0_TIMER1:
         {
-            PWMPCR.field.ch1_en=nStatus;
+            PWMPCR.field.ch1_en = nStatus;
             break;
         }
+
         case PWM0_TIMER2:
         {
-            PWMPCR.field.ch2_en=nStatus;
+            PWMPCR.field.ch2_en = nStatus;
             break;
         }
+
         case PWM0_TIMER3:
         {
-            PWMPCR.field.ch3_en=nStatus;
+            PWMPCR.field.ch3_en = nStatus;
             break;
         }
         }
+
         outpw(REG_PWM0_PCR, PWMPCR.value);
     }
     else
     {
-        PWMPCR.value=(UINT)inpw(REG_PWM1_PCR);
+        PWMPCR.value = (UINT)inpw(REG_PWM1_PCR);
+
         switch(nTimerIdentity)
         {
         case PWM1_TIMER0:
         {
-            PWMPCR.field.ch0_en=nStatus;
+            PWMPCR.field.ch0_en = nStatus;
             break;
         }
+
         case PWM1_TIMER1:
         {
-            PWMPCR.field.ch1_en=nStatus;
+            PWMPCR.field.ch1_en = nStatus;
             break;
         }
+
         case PWM1_TIMER2:
         {
-            PWMPCR.field.ch2_en=nStatus;
+            PWMPCR.field.ch2_en = nStatus;
             break;
         }
+
         case PWM1_TIMER3:
         {
-            PWMPCR.field.ch3_en=nStatus;
+            PWMPCR.field.ch3_en = nStatus;
             break;
         }
         }
+
         outpw(REG_PWM1_PCR, PWMPCR.value);
     }
 
@@ -1257,70 +1456,84 @@ static INT pwmSetTimerState(const INT nTimerIdentity, INT nStatus)
 static INT pwmSetInverter(const INT nTimerIdentity, INT nStatus)
 {
     typePCR PWMPCR;
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// Timer_num value error
     }
+
     if(nStatus != PWM_INVON && nStatus != PWM_INVOFF)
     {
         return pwmInvalidInverterValue;// PCR inverter value error
     }
-    if (nTimerIdentity<PWM1_TIMER0)
+
+    if (nTimerIdentity < PWM1_TIMER0)
     {
-        PWMPCR.value=(UINT)inpw(REG_PWM0_PCR);
+        PWMPCR.value = (UINT)inpw(REG_PWM0_PCR);
+
         switch(nTimerIdentity)
         {
         case PWM0_TIMER0:
         {
-            PWMPCR.field.ch0_inverter=nStatus;
+            PWMPCR.field.ch0_inverter = nStatus;
             break;
         }
+
         case PWM0_TIMER1:
         {
-            PWMPCR.field.ch1_inverter=nStatus;
+            PWMPCR.field.ch1_inverter = nStatus;
             break;
         }
+
         case PWM0_TIMER2:
         {
-            PWMPCR.field.ch2_inverter=nStatus;
+            PWMPCR.field.ch2_inverter = nStatus;
             break;
         }
+
         case PWM0_TIMER3:
         {
-            PWMPCR.field.ch3_inverter=nStatus;
+            PWMPCR.field.ch3_inverter = nStatus;
             break;
         }
         }
+
         outpw(REG_PWM0_PCR, PWMPCR.value);
     }
     else
     {
-        PWMPCR.value=(UINT)inpw(REG_PWM1_PCR);
+        PWMPCR.value = (UINT)inpw(REG_PWM1_PCR);
+
         switch(nTimerIdentity)
         {
         case PWM1_TIMER0:
         {
-            PWMPCR.field.ch0_inverter=nStatus;
+            PWMPCR.field.ch0_inverter = nStatus;
             break;
         }
+
         case PWM1_TIMER1:
         {
-            PWMPCR.field.ch1_inverter=nStatus;
+            PWMPCR.field.ch1_inverter = nStatus;
             break;
         }
+
         case PWM1_TIMER2:
         {
-            PWMPCR.field.ch2_inverter=nStatus;
+            PWMPCR.field.ch2_inverter = nStatus;
             break;
         }
+
         case PWM1_TIMER3:
         {
-            PWMPCR.field.ch3_inverter=nStatus;
+            PWMPCR.field.ch3_inverter = nStatus;
             break;
         }
         }
+
         outpw(REG_PWM1_PCR, PWMPCR.value);
     }
+
     return Successful;
 }
 
@@ -1336,70 +1549,84 @@ static INT pwmSetInverter(const INT nTimerIdentity, INT nStatus)
 static INT pwmSetMode(const INT nTimerIdentity, INT nStatus)
 {
     typePCR PWMPCR;
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// Timer_num value error
     }
+
     if(nStatus != PWM_TOGGLE && nStatus != PWM_ONESHOT)
     {
         return pwmInvalidModeStatus;// PCR inverter value error
     }
-    if (nTimerIdentity<PWM1_TIMER0)
+
+    if (nTimerIdentity < PWM1_TIMER0)
     {
-        PWMPCR.value=(UINT)inpw(REG_PWM0_PCR);
+        PWMPCR.value = (UINT)inpw(REG_PWM0_PCR);
+
         switch(nTimerIdentity)
         {
         case PWM0_TIMER0:
         {
-            PWMPCR.field.ch0_mode=nStatus;
+            PWMPCR.field.ch0_mode = nStatus;
             break;
         }
+
         case PWM0_TIMER1:
         {
-            PWMPCR.field.ch1_mode=nStatus;
+            PWMPCR.field.ch1_mode = nStatus;
             break;
         }
+
         case PWM0_TIMER2:
         {
-            PWMPCR.field.ch2_mode=nStatus;
+            PWMPCR.field.ch2_mode = nStatus;
             break;
         }
+
         case PWM0_TIMER3:
         {
-            PWMPCR.field.ch3_mode=nStatus;
+            PWMPCR.field.ch3_mode = nStatus;
             break;
         }
         }
+
         outpw(REG_PWM0_PCR, PWMPCR.value);
     }
     else
     {
-        PWMPCR.value=(UINT)inpw(REG_PWM1_PCR);
+        PWMPCR.value = (UINT)inpw(REG_PWM1_PCR);
+
         switch(nTimerIdentity)
         {
         case PWM1_TIMER0:
         {
-            PWMPCR.field.ch0_mode=nStatus;
+            PWMPCR.field.ch0_mode = nStatus;
             break;
         }
+
         case PWM1_TIMER1:
         {
-            PWMPCR.field.ch1_mode=nStatus;
+            PWMPCR.field.ch1_mode = nStatus;
             break;
         }
+
         case PWM1_TIMER2:
         {
-            PWMPCR.field.ch2_mode=nStatus;
+            PWMPCR.field.ch2_mode = nStatus;
             break;
         }
+
         case PWM1_TIMER3:
         {
-            PWMPCR.field.ch3_mode=nStatus;
+            PWMPCR.field.ch3_mode = nStatus;
             break;
         }
         }
+
         outpw(REG_PWM1_PCR, PWMPCR.value);
     }
+
     bPWMTimerMode[nTimerIdentity] = nStatus;
 
     return Successful;
@@ -1417,19 +1644,24 @@ static INT pwmSetMode(const INT nTimerIdentity, INT nStatus)
 static INT pwmSetCNR(const INT nTimerIdentity, INT nValue)
 {
     typeCNR PWMCNR;
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// Timer_num value error
     }
+
     if(nValue < CNR_MIN || nValue > CNR_MAX)
     {
         return pwmInvalidCNRValue;// PCR inverter value error
     }
-    PWMCNR.field.cnr=nValue;
-    if (nTimerIdentity<PWM1_TIMER0)
-        outpw(REG_PWM0_CNR0+(PWM_OFFSET*nTimerIdentity), PWMCNR.value);
+
+    PWMCNR.field.cnr = nValue;
+
+    if (nTimerIdentity < PWM1_TIMER0)
+        outpw(REG_PWM0_CNR0 + (PWM_OFFSET * nTimerIdentity), PWMCNR.value);
     else
-        outpw(REG_PWM0_CNR1+(PWM_OFFSET*(nTimerIdentity - PWM1_TIMER0)), PWMCNR.value);
+        outpw(REG_PWM1_CNR0 + (PWM_OFFSET * (nTimerIdentity - PWM1_TIMER0)), PWMCNR.value);
+
     return Successful;
 }
 
@@ -1444,19 +1676,24 @@ static INT pwmSetCNR(const INT nTimerIdentity, INT nValue)
 static INT pwmSetCMR(const INT nTimerIdentity, INT nValue)
 {
     typeCMR PWMCMR;
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// Timer_num value error
     }
+
     if(nValue < CMR_MIN || nValue > CMR_MAX)
     {
         return pwmInvalidCMRValue;// CMR value error
     }
-    PWMCMR.field.cmr=nValue;
-    if (nTimerIdentity<PWM1_TIMER0)
-        outpw(REG_PWM0_CMR0+(PWM_OFFSET*nTimerIdentity), PWMCMR.value);
+
+    PWMCMR.field.cmr = nValue;
+
+    if (nTimerIdentity < PWM1_TIMER0)
+        outpw(REG_PWM0_CMR0 + (PWM_OFFSET * nTimerIdentity), PWMCMR.value);
     else
-        outpw(REG_PWM0_CMR1+(PWM_OFFSET*(nTimerIdentity - PWM1_TIMER0)), PWMCMR.value);
+        outpw(REG_PWM1_CMR0 + (PWM_OFFSET * (nTimerIdentity - PWM1_TIMER0)), PWMCMR.value);
+
     return Successful;
 }
 
@@ -1468,16 +1705,16 @@ static INT pwmSetCMR(const INT nTimerIdentity, INT nValue)
   */
 static UINT pwmGetPDR(const INT nTimerIdentity)
 {
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// Timer_num value error
     }
     else
     {
-        if (nTimerIdentity<PWM1_TIMER0)
-            return (UINT)inpw(REG_PWM0_PDR0+(PWM_OFFSET*nTimerIdentity));// Return PDR value
+        if (nTimerIdentity < PWM1_TIMER0)
+            return (UINT)inpw(REG_PWM0_PDR0 + (PWM_OFFSET * nTimerIdentity)); // Return PDR value
         else
-            return (UINT)inpw(REG_PWM1_PDR0+(PWM_OFFSET*nTimerIdentity));// Return PDR value
+            return (UINT)inpw(REG_PWM1_PDR0 + (PWM_OFFSET * (nTimerIdentity - PWM1_TIMER0))); // Return PDR value
     }
 }
 
@@ -1491,28 +1728,45 @@ static UINT pwmGetPDR(const INT nTimerIdentity)
   */
 static INT pwmSetPIER(const INT nTimerIdentity, INT nValue)
 {
-    UINT uRegisterValue=0;;
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+    UINT uRegisterValue = 0;;
+
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// Timer_num value error
     }
+
+    if (nTimerIdentity < PWM1_TIMER0)
+    {
+        uRegisterValue = (UINT)inpw(REG_PWM0_PIER);
+
+        if(nValue == PWM_ENABLE)
+        {
+            uRegisterValue = uRegisterValue | (1 << nTimerIdentity); // Set PIER
+        }
+        else
+        {
+            uRegisterValue = uRegisterValue & (0 << nTimerIdentity); // Clear PIER
+        }
+
+        outpw(REG_PWM0_PIER, uRegisterValue);// Write value to PIER
+    }
     else
     {
-        uRegisterValue=(UINT)inpw(REG_PWM0_PIER);
-        if(nValue==PWM_ENABLE)
+        uRegisterValue = (UINT)inpw(REG_PWM1_PIER);
+
+        if(nValue == PWM_ENABLE)
         {
-            uRegisterValue=uRegisterValue|(1<<nTimerIdentity);// Set PIER
+            uRegisterValue = uRegisterValue | (1 << (nTimerIdentity - PWM1_TIMER0)); // Set PIER
         }
         else
         {
-            uRegisterValue=uRegisterValue&(0<<nTimerIdentity);// Clear PIER
+            uRegisterValue = uRegisterValue & (0 << (nTimerIdentity - PWM1_TIMER0)); // Clear PIER
         }
-        if (nTimerIdentity<PWM1_TIMER0)
-            outpw(REG_PWM0_PIER, uRegisterValue);// Write value to PIER
-        else
-            outpw(REG_PWM1_PIER, uRegisterValue);// Write value to PIER
-        return Successful;
+
+        outpw(REG_PWM1_PIER, uRegisterValue);// Write value to PIER
     }
+
+    return Successful;
 }
 
 
@@ -1524,22 +1778,24 @@ static INT pwmSetPIER(const INT nTimerIdentity, INT nValue)
   */
 static INT pwmCleanPIIR(const INT nTimerIdentity)
 {
-    UINT uRegisterValue=0;
-    if(nTimerIdentity<PWM_TIMER_MIN || nTimerIdentity>PWM_TIMER_MAX)
+    UINT uRegisterValue = 0;
+
+    if(nTimerIdentity < PWM_TIMER_MIN || nTimerIdentity > PWM_TIMER_MAX)
     {
         return pwmInvalidTimerChannel;// nTimerIdentity value error
     }
-    if (nTimerIdentity<PWM1_TIMER0)
+
+    if (nTimerIdentity < PWM1_TIMER0)
     {
-        uRegisterValue=(UINT)inpw(REG_PWM0_PIIR);
-        uRegisterValue=uRegisterValue&~(1<<nTimerIdentity);
-        outpw(REG_PWM0_PIIR,uRegisterValue);
+        uRegisterValue = (UINT)inpw(REG_PWM0_PIIR);
+        uRegisterValue = uRegisterValue & ~(1 << nTimerIdentity);
+        outpw(REG_PWM0_PIIR, uRegisterValue);
     }
     else
     {
-        uRegisterValue=(UINT)inpw(REG_PWM1_PIIR);
-        uRegisterValue=uRegisterValue&~(1<<nTimerIdentity);
-        outpw(REG_PWM1_PIIR,uRegisterValue);
+        uRegisterValue = (UINT)inpw(REG_PWM1_PIIR);
+        uRegisterValue = uRegisterValue & ~(1 << (nTimerIdentity - PWM1_TIMER0));
+        outpw(REG_PWM1_PIIR, uRegisterValue);
     }
 
     return Successful;
