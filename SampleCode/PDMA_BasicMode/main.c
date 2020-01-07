@@ -15,8 +15,10 @@
 /* Global variables                                                                                        */
 /*---------------------------------------------------------------------------------------------------------*/
 uint32_t PDMA_TEST_LENGTH = 64;
-uint8_t au8SrcArray[256];
-uint8_t au8DestArray[256];
+__attribute__((aligned(32))) static uint8_t au8SrcArray[256];
+__attribute__((aligned(32))) static uint8_t au8DestArray[256];
+static uint8_t *au8SrcArray_point;
+static uint8_t *au8DestArray_point;
 uint32_t volatile g_u32IsTestOver = 0;
 
 /**
@@ -71,10 +73,15 @@ void UART_Init()
 /*---------------------------------------------------------------------------------------------------------*/
 int main(void)
 {
+    int i;
     outpw(REG_CLK_HCLKEN, inpw(REG_CLK_HCLKEN)|(1<<12)); //Enable PDMA0 engine
     sysDisableCache();
     sysFlushCache(I_D_CACHE);
     sysEnableCache(CACHE_WRITE_BACK);
+    
+    au8SrcArray_point = (uint8_t*)((uint32_t) au8SrcArray | 0x80000000);
+    au8DestArray_point = (uint8_t*)((uint32_t) au8DestArray | 0x80000000);
+
     UART_Init();
 
     printf("+------------------------------------------------------+ \n");
@@ -84,7 +91,11 @@ int main(void)
     sysInstallISR(IRQ_LEVEL_1, IRQ_PDMA0, (PVOID)PDMA0_IRQHandler);
     sysSetLocalInterrupt(ENABLE_IRQ);
     sysEnableInterrupt(IRQ_PDMA0);
-
+    for(i=0;i<256;i++)
+    {
+        au8SrcArray_point[i] = i;
+        au8DestArray_point[i]=0;
+    }
 
     /*------------------------------------------------------------------------------------------------------
 
@@ -139,6 +150,11 @@ int main(void)
     /* Waiting for transfer done */
     while(g_u32IsTestOver == 0);
 
+    for(i=0;i<256;i++)
+    {
+        if(au8SrcArray_point[i] != au8DestArray_point[i])  
+             printf("target abort...au8DestArray_point[%d] = %d\n", i, au8DestArray_point[i]);
+    }
     /* Check transfer result */
     if(g_u32IsTestOver == 1)
         printf("test done...\n");
