@@ -107,8 +107,7 @@ void UART_TEST_HANDLE()
 
 void UART1_Init(void)
 {
-    /* enable UART0 clock */
-    outpw(REG_CLK_PCLKEN0, inpw(REG_CLK_PCLKEN0) | 0x10000);
+    outpw(REG_CLK_PCLKEN0, inpw(REG_CLK_PCLKEN0) | (0x1 << 17)); // Enable UART1 engine clock
 
     /* Configure UART0 and set UART0 baud rate */
     UART_Open(UART1, 115200);
@@ -163,6 +162,8 @@ int32_t main (void)
     /* Select UART1 Multi-Function */
     outpw(REG_SYS_GPC_MFPL, (inpw(REG_SYS_GPC_MFPL) & 0x000fffff) | 0x77700000); // UART1_RX:PC6, UART1_TX:PC5, UART1_RTS:PC7
     outpw(REG_SYS_GPC_MFPH, (inpw(REG_SYS_GPC_MFPH) & 0xfffffff0) | 0x00000007); // UART1_CTS:PC8
+
+    UART1_Init();
 
     /*---------------------------------------------------------------------------------------------------------*/
     /* SAMPLE CODE                                                                                             */
