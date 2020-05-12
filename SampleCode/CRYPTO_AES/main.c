@@ -114,7 +114,7 @@ int32_t main (void)
     AES_Open(CRPT, 1, AES_MODE_ECB, AES_KEY_SIZE_128, AES_IN_OUT_SWAP);
     AES_SetKey(CRPT, au32MyAESKey, AES_KEY_SIZE_128);
     AES_SetInitVect(CRPT, au32MyAESIV);
-    AES_SetDMATransfer(CRPT, (uint32_t)au8InputData, (uint32_t)au8OutputData, sizeof(au8InputData));
+    AES_SetDMATransfer(CRPT, (uint32_t)au8InputData, (uint32_t)au8OutputData, sizeof(au8InputData_pool));
 
     g_AES_done = 0;
     AES_Start(CRPT, CRYPTO_DMA_ONE_SHOT);
@@ -129,7 +129,7 @@ int32_t main (void)
     AES_Open(CRPT, 0, AES_MODE_ECB, AES_KEY_SIZE_128, AES_IN_OUT_SWAP);
     AES_SetKey(CRPT, au32MyAESKey, AES_KEY_SIZE_128);
     AES_SetInitVect(CRPT, au32MyAESIV);
-    AES_SetDMATransfer(CRPT, (uint32_t)au8OutputData, (uint32_t)au8InputData, sizeof(au8InputData));
+    AES_SetDMATransfer(CRPT, (uint32_t)au8OutputData, (uint32_t)au8InputData, sizeof(au8InputData_pool));
 
     g_AES_done = 0;
     AES_Start(CRPT, CRYPTO_DMA_ONE_SHOT);
