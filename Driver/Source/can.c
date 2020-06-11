@@ -739,7 +739,7 @@ uint32_t CAN_SetBaudRate(CAN_T *tCAN, uint32_t u32BaudRate)
 
     CAN_EnterInitMode(tCAN, (uint8_t)0);
 
-    CAN_Clock = sysGetClock(SYS_PCLK2);
+    CAN_Clock = sysGetClock(SYS_PCLK2) * 1000000;
 
     clock_freq = CAN_Clock / u64PCLK_DIV;
 
