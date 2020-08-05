@@ -6,6 +6,7 @@
  * @brief    USB Host Video class driver header file.
  *
  * @note
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
  ******************************************************************************/
 #ifndef __INCLUDED_UVC_H__

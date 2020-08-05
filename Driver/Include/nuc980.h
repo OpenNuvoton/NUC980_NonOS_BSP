@@ -4,6 +4,7 @@
  *           This file contains all the peripheral register's definitions
  *           and memory mapping for NuMicro NUC980 MPU.
  *
+ * SPDX-License-Identifier: Apache-2.0
  * @copyright (C) 2019 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 /**

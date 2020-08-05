@@ -6,6 +6,7 @@
  * @brief    NUC980 USB Host HID driver.
  *
  * @note
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (C) 2017 Nuvoton Technology Corp. All rights reserved.
 *****************************************************************************/
 

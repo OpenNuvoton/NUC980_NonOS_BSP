@@ -2,6 +2,7 @@
  * @file     GPIO.h
  * @brief    GPIO driver header file
  *
+ * SPDX-License-Identifier: Apache-2.0
  * @copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
  ******************************************************************************/
 #ifndef __GPIO_H__

@@ -6,6 +6,7 @@
  * @brief    NUC980 series RTC driver source file
  *
  * @note
+ * SPDX-License-Identifier: Apache-2.0
  * @copyright (C) 2016 Nuvoton Technology Corp. All rights reserved.
 *****************************************************************************/
 #include "rtc.h"

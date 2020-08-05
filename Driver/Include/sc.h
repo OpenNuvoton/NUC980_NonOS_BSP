@@ -2,6 +2,7 @@
  * @file     sc.h
  * @brief    NUC980 Smartcard (SC) driver header file
  *
+ * SPDX-License-Identifier: Apache-2.0
  * @copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 #ifndef __SC_H__

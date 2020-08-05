@@ -2,6 +2,7 @@
  * @file     sc.c
  * @brief    NUC980 series Smartcard(SC) driver source file
  *
+ * SPDX-License-Identifier: Apache-2.0
  * @copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
 *****************************************************************************/
 #include "sc.h"

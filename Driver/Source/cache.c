@@ -2,6 +2,7 @@
  * @file     cache.c
  * @brief    NUC980 cache/MMU control code
  *
+ * SPDX-License-Identifier: Apache-2.0
  * @copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
  *****************************************************************************/
 

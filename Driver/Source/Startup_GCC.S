@@ -2,7 +2,8 @@
 ; * @file     Startup_GCC.S                                                 *
 ; * @brief    NUC980 vector table and startup code                          *
 ; *                                                                         *
-; * @copyright (C) 2019 Nuvoton Technology Corp. All rights reserved.       *                                                                       *
+; * SPDX-License-Identifier: Apache-2.0                                     *
+; * @copyright (C) 2019 Nuvoton Technology Corp. All rights reserved.       *
 ; ***************************************************************************/
 
         ARM_MODE_USER  = 0x10        /* Normal User Mode                             */

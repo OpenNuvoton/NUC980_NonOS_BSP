@@ -2,6 +2,7 @@
  * @file     sdh.h
  * @brief    SDH driver header file
  *
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
 *****************************************************************************/
 #include <stdio.h>

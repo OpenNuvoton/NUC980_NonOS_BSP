@@ -2,6 +2,7 @@
  * @file     wdt.c
  * @brief    NUC980 series WDT driver source file
  *
+ * SPDX-License-Identifier: Apache-2.0
  * @copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
 *****************************************************************************/
 #include "wdt.h"

@@ -2,6 +2,7 @@
 ; * @file     startup.s
 ; * @brief    NUC980 startup code
 ; *
+; * SPDX-License-Identifier: Apache-2.0
 ; * @copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
 ; *****************************************************************************/
 

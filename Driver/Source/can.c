@@ -3,6 +3,7 @@
  * @version  V2.00
  * @brief    NUC980 series CAN driver source file
  *
+ * SPDX-License-Identifier: Apache-2.0
  * @copyright (C) 2016 Nuvoton Technology Corp. All rights reserved.
 *****************************************************************************/
 #include "can.h"

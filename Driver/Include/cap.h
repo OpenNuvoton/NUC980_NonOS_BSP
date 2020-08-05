@@ -2,6 +2,7 @@
  * @file     cap.h
  * @brief    Image Capture Driver Header File
  *
+ * SPDX-License-Identifier: Apache-2.0
  * @copyright (C) 2018 Nuvoton Technology Corp. All rights reserved.
  ******************************************************************************/
 #ifndef __CAP_H__
