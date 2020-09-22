@@ -2449,7 +2449,9 @@ static void Hex2Binary(char * input, char *output)
     int    i, j, idx, n, klen;
     char   *p = (char *)input;
 
-    if (strlen(input)+3 > RSA_KBUF_HLEN)
+    klen = strlen(input);
+
+    if ((klen+3) > RSA_KBUF_HLEN)
     {
         printf("Hex2Binary overflow!!  %d > %d\n", klen+3, RSA_KBUF_HLEN);
     }

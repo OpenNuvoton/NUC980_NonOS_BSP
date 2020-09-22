@@ -102,7 +102,7 @@ int  init_hid_device(HID_DEV_T *hdev)
     uint8_t   *data_buff;
     int       ret;
 
-    data_buff = (uint8_t *)((uint32_t)g_buff_pool | 0x80000000);   // get non-cachable buffer address
+    data_buff = (uint8_t *)((uint32_t)g_buff_pool | 0x80000000);   // get non-cacheable buffer address
 
     printf("\n\n==================================\n");
     printf("  Init HID device : 0x%x\n", (int)hdev);

@@ -186,7 +186,7 @@ int  get_next_pattern(void)
     int         blen;
     uint8_t     *p;
 
-    /* get non-cachable buffer pointer */
+    /* get non-cacheable buffer pointer */
     g_hmac_msg = (uint8_t *)((uint32_t)g_hmac_msg_pool | 0x80000000);
     g_hmac_mac = (uint8_t *)((uint32_t)g_hmac_mac_pool | 0x80000000);
 
