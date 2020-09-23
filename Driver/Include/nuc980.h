@@ -44,7 +44,7 @@
    *
    * <b>Copyright Notice</b>
    *
-   * Copyright (C) 2019 Nuvoton Technology Corp. All rights reserved.
+   * Copyright (C) 2020 Nuvoton Technology Corp. All rights reserved.
    */
 
 #ifndef __NUC980_H__

@@ -2586,7 +2586,7 @@ void RSA_Calculate_C(int length, char *rsa_N, char *rsa_C)
   * @param[in]  d           (n,d) is the private key
   * @param[in]  C           The constant value of Montgomery domain.
   * @param[in]  msg         The message to be signed.
-  * @param[out] sign        The output signature.
+  * @param[out] sig         The output signature.
   * @return  0     Success.
   * @return  -1    Error
   */
@@ -2621,7 +2621,7 @@ int32_t  RSA_GenerateSignature(CRPT_T *crpt, int rsa_len, char *n, char *d, char
   * @param[in]  n           The modulus for both the public and private keys
   * @param[in]  e           (n,e) is the public key
   * @param[in]  C           The constant value of Montgomery domain.
-  * @param[in]  sign        The signature to be verified.
+  * @param[in]  sig         The signature to be verified.
   * @param[out] msg         The message to be compared.
   * @return  0     Success.
   * @return  -1    Verify failed

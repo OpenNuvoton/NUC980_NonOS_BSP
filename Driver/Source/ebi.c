@@ -43,7 +43,6 @@
   * @param[in]  u32BusMode          Set EBI bus operate mode. Valid values are:
   *                                     - \ref EBI_OPMODE_NORMAL
   *                                     - \ref EBI_OPMODE_CACCESS
-  *                                     - \ref EBI_OPMODE_ADSEPARATE
   * @param[in]  u32CSActiveLevel    CS is active High/Low. Valid values are:
   *                                     - \ref EBI_CS_ACTIVE_HIGH
   *                                     - \ref EBI_CS_ACTIVE_LOW

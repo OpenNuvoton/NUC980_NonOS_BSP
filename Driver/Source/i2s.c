@@ -244,7 +244,7 @@ void i2sInit(void)
   *                                     - \ref I2S_SET_PCMSLOT
   * @param[in] arg0 argument 0 for io control
   * @param[in] arg1 argument 1 for io control
-  * @retval \ref I2S_ERR_IO error.
+  * @retval I2S_ERR_IO error.
   * @retval 0 success.
   */
 int32_t i2sIoctl(uint32_t cmd, uint32_t arg0, uint32_t arg1)
