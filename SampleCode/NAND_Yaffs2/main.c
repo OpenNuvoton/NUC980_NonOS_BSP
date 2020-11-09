@@ -37,8 +37,8 @@ void Start_ETIMER0(void)
     // Enable ETIMER0 engine clock
     outpw(REG_CLK_PCLKEN0, inpw(REG_CLK_PCLKEN0) | (1 << 8));
 
-    // Set timer frequency to 100 HZ
-    ETIMER_Open(0, ETIMER_PERIODIC_MODE, 100);
+    // Set timer frequency to 1000 HZ
+    ETIMER_Open(0, ETIMER_PERIODIC_MODE, 1000);
 
     // Enable timer interrupt
     ETIMER_EnableInt(0);
