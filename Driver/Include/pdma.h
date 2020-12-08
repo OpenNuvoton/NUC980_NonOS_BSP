@@ -81,7 +81,7 @@ typedef struct
      * |        |          |0 = Stride transfer mode Disabled.
      * |        |          |1 = Stride transfer mode Enabled.
      * |[31:16] |TXCNT     |Transfer Count
-     * |        |          |The TXCNT represents the required number of PDMA transfer, the real transfer count is (TXCNT + 1); The maximum transfer count is 32768 , every transfer may be byte, half-word or word that is dependent on TXWIDTH field.
+     * |        |          |The TXCNT represents the required number of PDMA transfer, the real transfer count is (TXCNT + 1); The maximum transfer count is 65536 , every transfer may be byte, half-word or word that is dependent on TXWIDTH field.
      * |        |          |Note: When PDMA finish each transfer data, this field will be decrease immediately.
      * @var DSCT_T::SA
      * Offset: 0x04  Source Address Register of PDMA Channel n
@@ -252,11 +252,43 @@ typedef struct
      * |        |          |0 = PDMA channel source address and destination address both follow transfer width setting.
      * |        |          |1 = PDMA channel source address or destination address is not follow transfer width setting.
      * |[8]     |REQTOF0   |Request Time-out Flag for Channel 0
-     * |        |          |This flag indicates that PDMA controller has waited peripheral request for a period defined by PDMA_TOC0, user can write 1 to clear these bits.
+     * |        |          |This flag indicates that PDMA controller has waited peripheral request for a period defined by PDMA_TOC0_1, user can write 1 to clear these bits.
      * |        |          |0 = No request time-out.
      * |        |          |1 = Peripheral request time-out.
      * |[9]     |REQTOF1   |Request Time-out Flag for Channel 1
-     * |        |          |This flag indicates that PDMA controller has waited peripheral request for a period defined by PDMA_TOC1, user can write 1 to clear these bits.
+     * |        |          |This flag indicates that PDMA controller has waited peripheral request for a period defined by PDMA_TOC0_1, user can write 1 to clear these bits.
+     * |        |          |0 = No request time-out.
+     * |        |          |1 = Peripheral request time-out.
+     * |[10]    |REQTOF2   |Request Time-out Flag for Channel 2
+     * |        |          |This flag indicates that PDMA controller has waited peripheral request for a period defined by PDMA_TOC2_3, user can write 1 to clear these bits.
+     * |        |          |0 = No request time-out.
+     * |        |          |1 = Peripheral request time-out.
+     * |[11]    |REQTOF3   |Request Time-out Flag for Channel 3
+     * |        |          |This flag indicates that PDMA controller has waited peripheral request for a period defined by PDMA_TOC2_3, user can write 1 to clear these bits.
+     * |        |          |0 = No request time-out.
+     * |        |          |1 = Peripheral request time-out.
+     * |[12]    |REQTOF4   |Request Time-out Flag for Channel 4
+     * |        |          |This flag indicates that PDMA controller has waited peripheral request for a period defined by PDMA_TOC4_5, user can write 1 to clear these bits.
+     * |        |          |0 = No request time-out.
+     * |        |          |1 = Peripheral request time-out.
+     * |[13]    |REQTOF5   |Request Time-out Flag for Channel 5
+     * |        |          |This flag indicates that PDMA controller has waited peripheral request for a period defined by PDMA_TOC4_5, user can write 1 to clear these bits.
+     * |        |          |0 = No request time-out.
+     * |        |          |1 = Peripheral request time-out.
+     * |[14]    |REQTOF6   |Request Time-out Flag for Channel 6
+     * |        |          |This flag indicates that PDMA controller has waited peripheral request for a period defined by PDMA_TOC6_7, user can write 1 to clear these bits.
+     * |        |          |0 = No request time-out.
+     * |        |          |1 = Peripheral request time-out.
+     * |[15]    |REQTOF7   |Request Time-out Flag for Channel 7
+     * |        |          |This flag indicates that PDMA controller has waited peripheral request for a period defined by PDMA_TOC6_7, user can write 1 to clear these bits.
+     * |        |          |0 = No request time-out.
+     * |        |          |1 = Peripheral request time-out.
+     * |[16]    |REQTOF8   |Request Time-out Flag for Channel 8
+     * |        |          |This flag indicates that PDMA controller has waited peripheral request for a period defined by PDMA_TOC8_9, user can write 1 to clear these bits.
+     * |        |          |0 = No request time-out.
+     * |        |          |1 = Peripheral request time-out.
+     * |[17]    |REQTOF9   |Request Time-out Flag for Channel 9
+     * |        |          |This flag indicates that PDMA controller has waited peripheral request for a period defined by PDMA_TOC8_9, user can write 1 to clear these bits.
      * |        |          |0 = No request time-out.
      * |        |          |1 = Peripheral request time-out.
      * @var PDMA_T::ABTSTS
@@ -353,6 +385,50 @@ typedef struct
      * |        |          |The calculation unit is based on 10 kHz clock.
      * |[31:16] |TOC1      |Time-out Counter for Channel 1
      * |        |          |This controls the period of time-out function for channel 1
+     * |        |          |The calculation unit is based on 10 kHz clock.
+     * @var PDMA_T::TOC2_3
+     * Offset: 0x444  PDMA Time-out Counter Ch2 and Ch3 Register
+     * ---------------------------------------------------------------------------------------------------
+     * |Bits    |Field     |Descriptions
+     * | :----: | :----:   | :---- |
+     * |[15:0]  |TOC2      |Time-out Counter for Channel 2
+     * |        |          |This controls the period of time-out function for channel 2
+     * |        |          |The calculation unit is based on 10 kHz clock.
+     * |[31:16] |TOC3      |Time-out Counter for Channel 3
+     * |        |          |This controls the period of time-out function for channel 3
+     * |        |          |The calculation unit is based on 10 kHz clock.
+     * @var PDMA_T::TOC4_5
+     * Offset: 0x448  PDMA Time-out Counter Ch4 and Ch5 Register
+     * ---------------------------------------------------------------------------------------------------
+     * |Bits    |Field     |Descriptions
+     * | :----: | :----:   | :---- |
+     * |[15:0]  |TOC4      |Time-out Counter for Channel 4
+     * |        |          |This controls the period of time-out function for channel 4
+     * |        |          |The calculation unit is based on 10 kHz clock.
+     * |[31:16] |TOC5      |Time-out Counter for Channel 5
+     * |        |          |This controls the period of time-out function for channel 5
+     * |        |          |The calculation unit is based on 10 kHz clock.
+     * @var PDMA_T::TOC6_7
+     * Offset: 0x44C  PDMA Time-out Counter Ch6 and Ch7 Register
+     * ---------------------------------------------------------------------------------------------------
+     * |Bits    |Field     |Descriptions
+     * | :----: | :----:   | :---- |
+     * |[15:0]  |TOC6      |Time-out Counter for Channel 6
+     * |        |          |This controls the period of time-out function for channel 6
+     * |        |          |The calculation unit is based on 10 kHz clock.
+     * |[31:16] |TOC7      |Time-out Counter for Channel 7
+     * |        |          |This controls the period of time-out function for channel 7
+     * |        |          |The calculation unit is based on 10 kHz clock.
+     * @var PDMA_T::TOC8_9
+     * Offset: 0x450  PDMA Time-out Counter Ch8 and Ch9 Register
+     * ---------------------------------------------------------------------------------------------------
+     * |Bits    |Field     |Descriptions
+     * | :----: | :----:   | :---- |
+     * |[15:0]  |TOC8      |Time-out Counter for Channel 8
+     * |        |          |This controls the period of time-out function for channel 8
+     * |        |          |The calculation unit is based on 10 kHz clock.
+     * |[31:16] |TOC9      |Time-out Counter for Channel 9
+     * |        |          |This controls the period of time-out function for channel 9
      * |        |          |The calculation unit is based on 10 kHz clock.
      * @var PDMA_T::CHRST
      * Offset: 0x460  PDMA Channel Reset Register
@@ -659,9 +735,34 @@ typedef struct
 
 #define PDMA_INTSTS_REQTOF0_Pos          (8)                                               /*!< PDMA_T::INTSTS: REQTOF0 Position       */
 #define PDMA_INTSTS_REQTOF0_Msk          (0x1ul << PDMA_INTSTS_REQTOF0_Pos)                /*!< PDMA_T::INTSTS: REQTOF0 Mask           */
+#define PDMA_INTSTS_REQTOFn_Msk          (0x3FFul << PDMA_INTSTS_REQTOF0_Pos)              /*!< PDMA_T::INTSTS: REQTOFX Mask           */
 
 #define PDMA_INTSTS_REQTOF1_Pos          (9)                                               /*!< PDMA_T::INTSTS: REQTOF1 Position       */
 #define PDMA_INTSTS_REQTOF1_Msk          (0x1ul << PDMA_INTSTS_REQTOF1_Pos)                /*!< PDMA_T::INTSTS: REQTOF1 Mask           */
+
+#define PDMA_INTSTS_REQTOF2_Pos          (10)                                              /*!< PDMA_T::INTSTS: REQTOF2 Position       */
+#define PDMA_INTSTS_REQTOF2_Msk          (0x1ul << PDMA_INTSTS_REQTOF2_Pos)                /*!< PDMA_T::INTSTS: REQTOF2 Mask           */
+
+#define PDMA_INTSTS_REQTOF3_Pos          (11)                                              /*!< PDMA_T::INTSTS: REQTOF3 Position       */
+#define PDMA_INTSTS_REQTOF3_Msk          (0x1ul << PDMA_INTSTS_REQTOF3_Pos)                /*!< PDMA_T::INTSTS: REQTOF3 Mask           */
+
+#define PDMA_INTSTS_REQTOF4_Pos          (12)                                              /*!< PDMA_T::INTSTS: REQTOF4 Position       */
+#define PDMA_INTSTS_REQTOF4_Msk          (0x1ul << PDMA_INTSTS_REQTOF4_Pos)                /*!< PDMA_T::INTSTS: REQTOF4 Mask           */
+
+#define PDMA_INTSTS_REQTOF5_Pos          (13)                                              /*!< PDMA_T::INTSTS: REQTOF5 Position       */
+#define PDMA_INTSTS_REQTOF5_Msk          (0x1ul << PDMA_INTSTS_REQTOF5_Pos)                /*!< PDMA_T::INTSTS: REQTOF5 Mask           */
+
+#define PDMA_INTSTS_REQTOF6_Pos          (14)                                              /*!< PDMA_T::INTSTS: REQTOF6 Position       */
+#define PDMA_INTSTS_REQTOF6_Msk          (0x1ul << PDMA_INTSTS_REQTOF6_Pos)                /*!< PDMA_T::INTSTS: REQTOF6 Mask           */
+
+#define PDMA_INTSTS_REQTOF7_Pos          (15)                                              /*!< PDMA_T::INTSTS: REQTOF7 Position       */
+#define PDMA_INTSTS_REQTOF7_Msk          (0x1ul << PDMA_INTSTS_REQTOF7_Pos)                /*!< PDMA_T::INTSTS: REQTOF7 Mask           */
+
+#define PDMA_INTSTS_REQTOF8_Pos          (16)                                              /*!< PDMA_T::INTSTS: REQTOF8 Position       */
+#define PDMA_INTSTS_REQTOF8_Msk          (0x1ul << PDMA_INTSTS_REQTOF8_Pos)                /*!< PDMA_T::INTSTS: REQTOF8 Mask           */
+
+#define PDMA_INTSTS_REQTOF9_Pos          (17)                                              /*!< PDMA_T::INTSTS: REQTOF9 Position       */
+#define PDMA_INTSTS_REQTOF9_Msk          (0x1ul << PDMA_INTSTS_REQTOF9_Pos)                /*!< PDMA_T::INTSTS: REQTOF9 Mask           */
 
 #define PDMA_ABTSTS_ABTIF0_Pos           (0)                                               /*!< PDMA_T::ABTSTS: ABTIF0 Position        */
 #define PDMA_ABTSTS_ABTIF0_Msk           (0x1ul << PDMA_ABTSTS_ABTIF0_Pos)                 /*!< PDMA_T::ABTSTS: ABTIF0 Mask            */
