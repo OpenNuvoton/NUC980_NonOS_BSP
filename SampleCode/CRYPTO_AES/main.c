@@ -121,7 +121,7 @@ int32_t main (void)
     while (!g_AES_done);
 
     printf("AES encrypt done.\n\n");
-    dump_buff_hex(au8OutputData, sizeof(au8InputData));
+    dump_buff_hex(au8OutputData, sizeof(au8InputData_pool));
 
     /*---------------------------------------
      *  AES-128 ECB mode decrypt
@@ -136,7 +136,7 @@ int32_t main (void)
     while (!g_AES_done);
 
     printf("AES decrypt done.\n\n");
-    dump_buff_hex(au8InputData, sizeof(au8InputData));
+    dump_buff_hex(au8InputData, sizeof(au8InputData_pool));
 
     while (1);
 }
