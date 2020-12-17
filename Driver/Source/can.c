@@ -58,16 +58,25 @@ static int can_update_spt(int sampl_pt, int tseg, int *tseg1, int *tseg2);
 static uint32_t LockIF(CAN_T *tCAN)
 {
     uint32_t u32CanNo;
-    uint32_t u32FreeIfNo;
+    uint32_t u32FreeIfNo = 2ul;
     uint32_t u32IntMask;
 
+    if(tCAN == CAN0)
+        u32CanNo = 0ul;
 #if defined(CAN1)
-    u32CanNo = (tCAN == CAN1) ? 1ul : 0ul;
-#else /* defined(CAN0) || defined(CAN) */
-    u32CanNo = 0ul;
+    else if(tCAN == CAN1)
+        u32CanNo = 1ul;
 #endif
-
-    u32FreeIfNo = 2ul;
+#if defined(CAN2)
+    else if(tCAN == CAN2)
+        u32CanNo = 2ul;
+#endif
+#if defined(CAN3)
+    else if(tCAN == CAN3)
+        u32CanNo = 3ul;
+#endif
+    else
+        return u32FreeIfNo;
 
     /* Disable CAN interrupt */
     u32IntMask = tCAN->CON & (CAN_CON_IE_Msk | CAN_CON_SIE_Msk | CAN_CON_EIE_Msk);
@@ -163,11 +172,23 @@ static void ReleaseIF(CAN_T *tCAN, uint32_t u32IfNo)
     }
     else
     {
+        if(tCAN == CAN0)
+            u32CanNo = 0ul;
 #if defined(CAN1)
-        u32CanNo = (tCAN == CAN1) ? 1ul : 0ul;
-#else /* defined(CAN0) || defined(CAN) */
-        u32CanNo = 0ul;
+        else if(tCAN == CAN1)
+            u32CanNo = 1ul;
 #endif
+#if defined(CAN2)
+        else if(tCAN == CAN2)
+            u32CanNo = 2ul;
+#endif
+#if defined(CAN3)
+        else if(tCAN == CAN3)
+            u32CanNo = 3ul;
+#endif
+        else
+            return ;
+
 
         /* Disable CAN interrupt */
         u32IntMask = tCAN->CON & (CAN_CON_IE_Msk | CAN_CON_SIE_Msk | CAN_CON_EIE_Msk);
@@ -1121,11 +1142,11 @@ int32_t CAN_SetRxMsgAndMsk(CAN_T *tCAN, uint32_t u32MsgNum, uint32_t u32IDType, 
 int32_t CAN_SetMultiRxMsg(CAN_T *tCAN, uint32_t u32MsgNum, uint32_t u32MsgCount, uint32_t u32IDType, uint32_t u32ID)
 {
     int32_t  rev = (int32_t)TRUE;
-    uint32_t i = 0ul;
+    uint32_t i;
     uint32_t u32TimeOutCount;
     uint32_t u32EOB_Flag = 0ul;
 
-    for(i = 1ul; i < u32MsgCount; i++)
+    for(i = 1ul; i <= u32MsgCount; i++)
     {
         u32TimeOutCount = 0ul;
 
