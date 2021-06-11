@@ -285,17 +285,24 @@ uint32_t SDH_SDCmdAndRspDataIn(SDH_T *sdh, uint32_t ucCmd, uint32_t uArg)
 void SDH_Set_clock(SDH_T *sdh, uint32_t sd_clock_khz)
 {
     UINT32 div;
+    UINT32 reg;
+
+    if (sdh == SDH0)
+        reg = REG_CLK_DIVCTL3;
+    else
+        reg = REG_CLK_DIVCTL9;
+
     if(sd_clock_khz<=2000)
     {
         _SDH_ReferenceClock=12000;
-        outpw(REG_CLK_DIVCTL9, (inpw(REG_CLK_DIVCTL9) & ~0x18) | (0x0 << 3));   // SD clock from XIN [4:3]
+        outpw(reg, (inpw(reg) & ~0x18) | (0x0 << 3));   // SD clock from XIN [4:3]
     }else{
         _SDH_ReferenceClock = 300000;
-        outpw(REG_CLK_DIVCTL9, (inpw(REG_CLK_DIVCTL9) & ~0x18) | (0x3 << 3));   // SD clock from UPLL [4:3]
+        outpw(reg, (inpw(reg) & ~0x18) | (0x3 << 3));   // SD clock from UPLL [4:3]
     }
     div=(_SDH_ReferenceClock/sd_clock_khz)-1;
     if(div>=SDH_CLK_DIV0_MAX) div=0xff;
-    outpw(REG_CLK_DIVCTL9, (inpw(REG_CLK_DIVCTL9) & ~0xff00) | ((div) << 8));  // SD clock divided by CLKDIV3[SD_N] [15:8]
+    outpw(reg, (inpw(reg) & ~0xff00) | ((div) << 8));  // SD clock divided by CLKDIV3[SD_N] [15:8]
 }
 
 uint32_t SDH_CardDetection(SDH_T *sdh)
