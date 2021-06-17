@@ -9,6 +9,7 @@
 #include "nuc980.h"
 #include "sys.h"
 #include "i2c.h"
+#include "gpio.h"
 
 uint32_t slave_buff_addr;
 uint8_t g_u8SlvData[256];
@@ -120,6 +121,7 @@ void I2C_SlaveTRx(uint32_t u32Status)
 void I2C0_Init(void)
 {
     outpw(REG_CLK_PCLKEN1, inpw(REG_CLK_PCLKEN1) | (0x1 << 0)); // Enable I2C0 engine clock
+    outpw(REG_CLK_HCLKEN, inpw(REG_CLK_HCLKEN) | (0x1 << 11)); // Enable GPIO engine clock
 
     /* Open I2C0 and set clock to 100k */
     I2C_Open(I2C0, 100000);
@@ -129,6 +131,8 @@ void I2C0_Init(void)
 
     /* SDA:GPA0, SCL:GPA1 */
     outpw(REG_SYS_GPA_MFPL, (inpw(REG_SYS_GPA_MFPL) & 0xffffff00) | 0x33);  // I2C0 multi-function
+    /* I2C pin enable schmitt trigger */
+    PA->SMTEN = 0x3;
 
     /* Set I2C0 4 Slave Addresses */
     I2C_SetSlaveAddr(I2C0, 0, 0x15, I2C_GCMODE_DISABLE);   /* Slave Address : 0x15 */
