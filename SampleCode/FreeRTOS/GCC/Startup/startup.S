@@ -39,7 +39,7 @@
     .extern  vPortYieldProcessor
     .arm
     .section .vectors, "ax"
-    .text
+    // .text
         
 __vector:
     ldr     pc,Reset_Addr   /* RESET                 vector */
@@ -65,7 +65,7 @@ PAbt_Handler:   b       PAbt_Handler
 DAbt_Handler:   b       DAbt_Handler
 IRQ_Handler:    b       IRQ_Handler
 FIQ_Handler:    b       FIQ_Handler
-__vector_end:
+// __vector_end: // provided by the linker
 
 Reset_Handler:
 
