@@ -20,7 +20,7 @@ SECTIONS
         PROVIDE(__text_start = .);
 
         PROVIDE(__vectors_start = .);
-        *(.vectors);
+        KEEP(*(.vectors));
         . = ALIGN(4);
         PROVIDE(__vectors_end = .);
         *(.init);
