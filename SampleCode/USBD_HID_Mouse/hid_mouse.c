@@ -342,6 +342,9 @@ void HID_Init(void)
     /*****************************************************/
     HID_InitForHighSpeed();
 
+    /* Start transaction */
+    USBD_Start();
+
     /* start to IN data */
     g_u8EPAReady = 1;
 }

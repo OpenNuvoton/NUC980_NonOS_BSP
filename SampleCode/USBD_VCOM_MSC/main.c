@@ -212,16 +212,6 @@ int32_t main (void)
     /* Endpoint configuration */
     VCOM_MSC_Init();
 
-    /* Start transaction */
-    while(1)
-    {
-        if (USBD_IS_ATTACHED())
-        {
-            USBD_Start();
-            break;
-        }
-    }
-
     while(1)
     {
         if (g_u8MscStart)

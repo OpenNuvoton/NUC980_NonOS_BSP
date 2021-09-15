@@ -435,6 +435,9 @@ void MSC_Init(void)
 
     MSC_InitForHighSpeed();
 
+    /* Start transaction */
+    USBD_Start();
+
     g_sCSW.dCSWSignature = CSW_SIGNATURE;
     if (g_u8SdInitFlag)
     {

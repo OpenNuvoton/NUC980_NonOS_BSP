@@ -473,6 +473,9 @@ void VCOM_MSC_Init(void)
 
     VCOM_MSC_InitForHighSpeed();
 
+    /* Start transaction */
+    USBD_Start();
+
     g_sCSW.dCSWSignature = CSW_SIGNATURE;
     if (g_u8SdInitFlag)
     {
