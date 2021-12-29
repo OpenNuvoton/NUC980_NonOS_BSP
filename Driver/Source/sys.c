@@ -193,7 +193,7 @@ __irq void sysFiqHandler()
 
     num = inpw(REG_AIC_FIQNUM);
     if (num != 0)
-        (*sysIrqHandlerTable[num])();
+        (*sysFiqHandlerTable[num])();
     outpw(REG_AIC_EOFS, 1);
 }
 
