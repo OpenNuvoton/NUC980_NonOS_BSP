@@ -323,7 +323,7 @@ demand_rexmit(proto, newip)
     unsigned short checksum;
     unsigned short pkt_checksum = 0;
     unsigned iphdr;
-    struct timeval tv;
+    struct _timeval tv;
     char cv = 0;
     char ipstr[16];
 

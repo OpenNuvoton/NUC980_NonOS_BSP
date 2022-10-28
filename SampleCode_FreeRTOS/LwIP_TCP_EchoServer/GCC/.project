@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>FreeRTOS</name>
+	<name>LwIP_TCP_EchoServer</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -35,6 +35,11 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
+			<name>LwIP</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
 			<name>Src</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
@@ -45,9 +50,24 @@
 			<locationURI>PARENT-3-PROJECT_LOC/Driver/Source</locationURI>
 		</link>
 		<link>
-			<name>FreeRTOS/FreeRTOS</name>
+			<name>FreeRTOS/Common</name>
 			<type>2</type>
-			<locationURI>PARENT-3-PROJECT_LOC../ThirdParty/FreeRTOS</locationURI>
+			<locationURI>PARENT-3-PROJECT_LOC/ThirdParty/FreeRTOS/Demo/Common</locationURI>
+		</link>
+		<link>
+			<name>FreeRTOS/Source</name>
+			<type>2</type>
+			<locationURI>PARENT-3-PROJECT_LOC/ThirdParty/FreeRTOS/Source</locationURI>
+		</link>
+		<link>
+			<name>LwIP/priv</name>
+			<type>2</type>
+			<locationURI>PARENT-2-PROJECT_LOC/lwIPShare</locationURI>
+		</link>
+		<link>
+			<name>LwIP/src</name>
+			<type>2</type>
+			<locationURI>PARENT-3-PROJECT_LOC/ThirdParty/lwip/src</locationURI>
 		</link>
 		<link>
 			<name>Src/main.c</name>
@@ -55,9 +75,9 @@
 			<locationURI>PARENT-1-PROJECT_LOC/main.c</locationURI>
 		</link>
 		<link>
-			<name>Src/multithread.c</name>
+			<name>Src/tcp_echoserver-netconn.c</name>
 			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/multithread.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/tcp_echoserver-netconn.c</locationURI>
 		</link>
 	</linkedResources>
 	<filteredResources>
@@ -143,34 +163,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1559043692942</id>
-			<name>Driver/Driver</name>
-			<type>5</type>
-			<matcher>
-				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-sys.c</arguments>
-			</matcher>
-		</filter>
-		<filter>
-			<id>1559043692950</id>
-			<name>Driver/Driver</name>
-			<type>5</type>
-			<matcher>
-				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-retarget.c</arguments>
-			</matcher>
-		</filter>
-		<filter>
-			<id>1559043692960</id>
-			<name>Driver/Driver</name>
-			<type>5</type>
-			<matcher>
-				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-GCC.ld</arguments>
-			</matcher>
-		</filter>
-		<filter>
-			<id>1559043692968</id>
+			<id>0</id>
 			<name>Driver/Driver</name>
 			<type>5</type>
 			<matcher>
@@ -179,53 +172,125 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1557139837562</id>
-			<name>FreeRTOS/FreeRTOS/Source</name>
+			<id>0</id>
+			<name>Driver/Driver</name>
 			<type>5</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-queue.c</arguments>
+				<arguments>1.0-name-matches-false-false-GCC.ld</arguments>
 			</matcher>
 		</filter>
 		<filter>
-			<id>1557139837571</id>
-			<name>FreeRTOS/FreeRTOS/Source</name>
+			<id>0</id>
+			<name>Driver/Driver</name>
 			<type>5</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-tasks.c</arguments>
+				<arguments>1.0-name-matches-false-false-retarget.c</arguments>
 			</matcher>
 		</filter>
 		<filter>
-			<id>1557139837587</id>
-			<name>FreeRTOS/FreeRTOS/Source</name>
+			<id>0</id>
+			<name>Driver/Driver</name>
 			<type>5</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-list.c</arguments>
+				<arguments>1.0-name-matches-false-false-Startup_GCC.S</arguments>
 			</matcher>
 		</filter>
 		<filter>
-			<id>1559034327141</id>
-			<name>FreeRTOS/FreeRTOS/Demo/Common</name>
+			<id>0</id>
+			<name>Driver/Driver</name>
+			<type>5</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-sys.c</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>0</id>
+			<name>Driver/Driver</name>
+			<type>5</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-uart.c</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>0</id>
+			<name>FreeRTOS/Common</name>
+			<type>9</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-Minimal</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>0</id>
+			<name>FreeRTOS/Source</name>
 			<type>10</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-Full</arguments>
+				<arguments>1.0-name-matches-false-false-include</arguments>
 			</matcher>
 		</filter>
 		<filter>
-			<id>1559034295967</id>
-			<name>FreeRTOS/FreeRTOS/Source/portable</name>
+			<id>0</id>
+			<name>FreeRTOS/Source</name>
+			<type>6</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-croutine.c</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>0</id>
+			<name>FreeRTOS/Source</name>
+			<type>22</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-event_groups.c</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>0</id>
+			<name>FreeRTOS/Source</name>
+			<type>6</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-stream_buffer.c</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1666946551298</id>
+			<name>LwIP/priv</name>
 			<type>10</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-RVDS</arguments>
+				<arguments>1.0-name-matches-false-false-include</arguments>
 			</matcher>
 		</filter>
 		<filter>
-			<id>1559034402381</id>
-			<name>FreeRTOS/FreeRTOS/Demo/Common/Minimal</name>
+			<id>0</id>
+			<name>LwIP/src</name>
+			<type>10</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-apps</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>0</id>
+			<name>LwIP/src</name>
+			<type>10</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-include</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1666946115364</id>
+			<name>FreeRTOS/Common/Minimal</name>
 			<type>5</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
@@ -233,17 +298,8 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1559034402389</id>
-			<name>FreeRTOS/FreeRTOS/Demo/Common/Minimal</name>
-			<type>5</type>
-			<matcher>
-				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-PollQ.c</arguments>
-			</matcher>
-		</filter>
-		<filter>
-			<id>1559034402399</id>
-			<name>FreeRTOS/FreeRTOS/Demo/Common/Minimal</name>
+			<id>1666946115371</id>
+			<name>FreeRTOS/Common/Minimal</name>
 			<type>5</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
@@ -251,22 +307,94 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1559034402409</id>
-			<name>FreeRTOS/FreeRTOS/Demo/Common/Minimal</name>
+			<id>1666946115377</id>
+			<name>FreeRTOS/Common/Minimal</name>
 			<type>5</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-dynamic.c</arguments>
+				<arguments>1.0-name-matches-false-false-PollQ.c</arguments>
 			</matcher>
 		</filter>
 		<filter>
-			<id>1559112656137</id>
-			<name>FreeRTOS/FreeRTOS/Source/portable/MemMang</name>
+			<id>1666946115384</id>
+			<name>FreeRTOS/Common/Minimal</name>
 			<type>5</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-heap_3.c</arguments>
+				<arguments>1.0-name-matches-false-false-GenQTest.c</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1666946115391</id>
+			<name>FreeRTOS/Common/Minimal</name>
+			<type>5</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-QueueSet.c</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1666946031123</id>
+			<name>FreeRTOS/Source/portable</name>
+			<type>10</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-RVDS</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1666946200085</id>
+			<name>LwIP/src/core</name>
+			<type>10</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-ipv6</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1666946225508</id>
+			<name>LwIP/src/netif</name>
+			<type>5</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-ethernet.c</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1666946225515</id>
+			<name>LwIP/src/netif</name>
+			<type>10</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-ppp</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1666946016758</id>
+			<name>FreeRTOS/Source/portable/MemMang</name>
+			<type>5</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-heap_2.c</arguments>
 			</matcher>
 		</filter>
 	</filteredResources>
+	<variableList>
+		<variable>
+			<name>copy_PARENT</name>
+			<value>$%7BPARENT-2-PROJECT_LOC%7D/NUC980/non-os</value>
+		</variable>
+		<variable>
+			<name>copy_PARENT1</name>
+			<value>$%7Bcopy_PARENT%7D/SampleCode_FreeRTOS</value>
+		</variable>
+		<variable>
+			<name>copy_PARENT12</name>
+			<value>$%7Bcopy_PARENT1%7D/LwIP_TCP_EchoServer</value>
+		</variable>
+		<variable>
+			<name>copy_PARENT123</name>
+			<value>$%7Bcopy_PARENT1%7D/LwIP_TCP_EchoClient</value>
+		</variable>
+	</variableList>
 </projectDescription>

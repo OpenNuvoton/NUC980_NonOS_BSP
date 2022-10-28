@@ -26,12 +26,13 @@
  * 1 tab == 4 spaces!
  */
 
-/* A TCP echo server which is implemented with LwIP under FreeRTOS.
-   The server listen to port 80, IP address could configure statically
-   to 192.168.0.2 or assign by DHCP server. This server replies
-   "Hello World!!" if the received string is "nuvoton", otherwise
-    reply "Wrong Password!!" to its client. */
-	
+/* A UDP echo server which is implemented with LwIP under FreeRTOS.
+   The server listen to port 80, IP address could be configured
+   statically to 192.168.1.2 or assign by DHCP server. After
+   receiving any string from its peer, this sample code reply with
+   "Hello World!!" */
+
+
 #include <stdio.h>
 
 /* Kernel includes. */
@@ -63,7 +64,7 @@
 #include "lwip/netifapi.h"
 #include "lwip/tcpip.h"
 #include "netif/ethernetif.h"
-#include "tcp_echoserver-netconn.h"
+#include "tftp.h"
 
 /* Priorities for the demo application tasks. */
 #if 0
@@ -125,7 +126,7 @@ unsigned char my_mac_addr0[6] = {0x00, 0x00, 0x00, 0x55, 0x66, 0x77};
 unsigned char my_mac_addr1[6] = {0x00, 0x00, 0x00, 0xAA, 0xBB, 0xCC};
 struct netif netif0;
 struct netif netif1;
-static void vTcpTask( void *pvParameters );
+static void vNetTask( void *pvParameters );
 extern void vPortYieldProcessor(void);
 extern void ETH0_TX_IRQHandler(void);
 extern void ETH0_RX_IRQHandler(void);
@@ -137,7 +138,7 @@ int main(void)
     /* Configure the hardware ready to run the test. */
     prvSetupHardware();
 
-    xTaskCreate( vTcpTask, "TcpTask", TCPIP_THREAD_STACKSIZE, NULL, mainCHECK_TASK_PRIORITY, NULL );
+    xTaskCreate( vNetTask, "NetTask", TCPIP_THREAD_STACKSIZE, NULL, mainCHECK_TASK_PRIORITY, NULL );
 
     //vStartBlockingQueueTasks( mainBLOCK_Q_PRIORITY );
     vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY );
@@ -241,7 +242,7 @@ void vApplicationTickHook( void )
 #endif /* mainCREATE_SIMPLE_BLINKY_DEMO_ONLY */
 }
 
-static void vTcpTask( void *pvParameters )
+static void vNetTask( void *pvParameters )
 {
     ip_addr_t ipaddr;
     ip_addr_t netmask;
@@ -271,7 +272,7 @@ static void vTcpTask( void *pvParameters )
     dhcp_start(netif);
 #endif
 
-    tcp_echoserver_netconn_init();
+    tftp_server_init();
 
     vTaskSuspend( NULL );
 

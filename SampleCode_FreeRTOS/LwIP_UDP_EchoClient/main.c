@@ -26,12 +26,10 @@
  * 1 tab == 4 spaces!
  */
 
-/* A TCP echo server which is implemented with LwIP under FreeRTOS.
-   The server listen to port 80, IP address could configure statically
-   to 192.168.0.2 or assign by DHCP server. This server replies
-   "Hello World!!" if the received string is "nuvoton", otherwise
-    reply "Wrong Password!!" to its client. */
-	
+/* A UDP echo client which is implemented with LwIP under FreeRTOS.
+   The client send to 192.168.0.2:80, IP address could be configured
+   statically to 192.168.0.3 or assign by DHCP server. */
+
 #include <stdio.h>
 
 /* Kernel includes. */
@@ -63,7 +61,7 @@
 #include "lwip/netifapi.h"
 #include "lwip/tcpip.h"
 #include "netif/ethernetif.h"
-#include "tcp_echoserver-netconn.h"
+#include "udp_echoclient-netconn.h"
 
 /* Priorities for the demo application tasks. */
 #if 0
@@ -125,7 +123,7 @@ unsigned char my_mac_addr0[6] = {0x00, 0x00, 0x00, 0x55, 0x66, 0x77};
 unsigned char my_mac_addr1[6] = {0x00, 0x00, 0x00, 0xAA, 0xBB, 0xCC};
 struct netif netif0;
 struct netif netif1;
-static void vTcpTask( void *pvParameters );
+static void vUdpTask( void *pvParameters );
 extern void vPortYieldProcessor(void);
 extern void ETH0_TX_IRQHandler(void);
 extern void ETH0_RX_IRQHandler(void);
@@ -137,7 +135,7 @@ int main(void)
     /* Configure the hardware ready to run the test. */
     prvSetupHardware();
 
-    xTaskCreate( vTcpTask, "TcpTask", TCPIP_THREAD_STACKSIZE, NULL, mainCHECK_TASK_PRIORITY, NULL );
+    xTaskCreate( vUdpTask, "UdpTask", TCPIP_THREAD_STACKSIZE, NULL, mainCHECK_TASK_PRIORITY, NULL );
 
     //vStartBlockingQueueTasks( mainBLOCK_Q_PRIORITY );
     vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY );
@@ -241,7 +239,7 @@ void vApplicationTickHook( void )
 #endif /* mainCREATE_SIMPLE_BLINKY_DEMO_ONLY */
 }
 
-static void vTcpTask( void *pvParameters )
+static void vUdpTask( void *pvParameters )
 {
     ip_addr_t ipaddr;
     ip_addr_t netmask;
@@ -255,10 +253,10 @@ static void vTcpTask( void *pvParameters )
 #endif
 
     IP4_ADDR(&gw, 192,168,0,1);
-    IP4_ADDR(&ipaddr, 192,168,0,2);
+    IP4_ADDR(&ipaddr, 192,168,0,3);
     IP4_ADDR(&netmask, 255,255,255,0);
 
-    printf("Local IP:192.168.0.2\n");
+    printf("Local IP:192.168.0.3\n");
 
     tcpip_init(NULL, NULL);
 
@@ -271,7 +269,7 @@ static void vTcpTask( void *pvParameters )
     dhcp_start(netif);
 #endif
 
-    tcp_echoserver_netconn_init();
+    udp_echoclient_netconn_init();
 
     vTaskSuspend( NULL );
 

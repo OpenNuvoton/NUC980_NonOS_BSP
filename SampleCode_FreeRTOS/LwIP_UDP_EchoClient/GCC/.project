@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>LwIP_TCP_EchoClient</name>
+	<name>LwIP_UDP_EchoClient</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -75,9 +75,9 @@
 			<locationURI>PARENT-1-PROJECT_LOC/main.c</locationURI>
 		</link>
 		<link>
-			<name>Src/tcp_echoclient-netconn.c</name>
+			<name>Src/udp_echoclient-netconn.c</name>
 			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/tcp_echoclient-netconn.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/udp_echoclient-netconn.c</locationURI>
 		</link>
 	</linkedResources>
 	<filteredResources>
@@ -262,7 +262,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1666946551298</id>
+			<id>0</id>
 			<name>LwIP/priv</name>
 			<type>10</type>
 			<matcher>

@@ -156,7 +156,7 @@ LWIP_MEMPOOL_DECLARE(PPP_PCB, MEMP_NUM_PPP_PCB, sizeof(ppp_pcb), "PPP_PCB")
 
 /* FIXME: add stats per PPP session */
 #if PPP_STATS_SUPPORT
-static struct timeval start_time; /* Time when link was started. */
+static struct _timeval start_time; /* Time when link was started. */
 static struct pppd_stats old_link_stats;
 struct pppd_stats link_stats;
 unsigned link_connect_time;
@@ -1616,7 +1616,7 @@ void reset_link_stats(int u) {
  * update_link_stats - get stats at link termination.
  */
 void update_link_stats(int u) {
-  struct timeval now;
+  struct _timeval now;
   char numbuf[32];
 
   if (!get_ppp_stats(u, &link_stats) || gettimeofday(&now, NULL) < 0) {

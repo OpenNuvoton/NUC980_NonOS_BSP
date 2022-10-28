@@ -106,6 +106,7 @@ information. */
 #define mainCREATE_SIMPLE_LED_FLASHER_DEMO_ONLY        0
 
 //#define USE_DHCP
+#define ETHINTF    0
 
 #ifdef USE_DHCP
 #include "lwip/dhcp.h"
@@ -243,6 +244,13 @@ static void vTcpTask( void *pvParameters )
     ip_addr_t ipaddr;
     ip_addr_t netmask;
     ip_addr_t gw;
+#if (ETHINTF == 0)
+    struct netif *netif = &netif0;
+    netif_init_fn ethernetif_init = ethernetif_init0;
+#else
+    struct netif *netif = &netif1;
+    netif_init_fn ethernetif_init = ethernetif_init1;
+#endif
 
     IP4_ADDR(&gw, 192,168,0,1);
     IP4_ADDR(&ipaddr, 192,168,0,3);
@@ -252,13 +260,13 @@ static void vTcpTask( void *pvParameters )
 
     tcpip_init(NULL, NULL);
 
-    netif_add(&netif0, &ipaddr, &netmask, &gw, NULL, ethernetif_init0, tcpip_input);
+    netif_add(netif, &ipaddr, &netmask, &gw, NULL, ethernetif_init, tcpip_input);
 
-    netif_set_default(&netif0);
-    netif_set_up(&netif0);
+    netif_set_default(netif);
+    netif_set_up(netif);
 
 #ifdef USE_DHCP
-    dhcp_start(&netif0);
+    dhcp_start(netif);
 #endif
 
     tcp_echoclient_netconn_init();

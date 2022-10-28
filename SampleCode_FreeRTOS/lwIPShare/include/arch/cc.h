@@ -31,11 +31,10 @@
  */
 #ifndef __CC_H__
 #define __CC_H__
-#include "nuc980.h"
-#include "sys.h"
+
 #include "cpu.h"
 #include "stdio.h"
-
+#include "FreeRTOS.h"
 #define LWIP_NO_STDINT_H 1
 
 /*-------------data type------------------------------------------------------*/
@@ -106,6 +105,8 @@ typedef u32_t sys_prot_t;
 
 
 #define LWIP_PROVIDE_ERRNO  1
+
+extern TickType_t xTaskGetTickCount( void );
 
 #define TCP_MSS                         1000
 #endif /* __CC_H__ */

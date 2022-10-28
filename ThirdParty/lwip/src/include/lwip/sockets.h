@@ -430,14 +430,14 @@ typedef struct fd_set
 #error "external FD_SETSIZE too small for number of sockets"
 #endif /* FD_SET */
 
-/** LWIP_TIMEVAL_PRIVATE: if you want to use the struct timeval provided
+/** LWIP_TIMEVAL_PRIVATE: if you want to use the struct _timeval provided
  * by your system, set this to 0 and include <sys/time.h> in cc.h */
 #ifndef LWIP_TIMEVAL_PRIVATE
 #define LWIP_TIMEVAL_PRIVATE 1
 #endif
 
 #if LWIP_TIMEVAL_PRIVATE
-struct timeval {
+struct _timeval {
   long    tv_sec;         /* seconds */
   long    tv_usec;        /* and microseconds */
 };
@@ -502,7 +502,7 @@ int lwip_socket(int domain, int type, int protocol);
 int lwip_write(int s, const void *dataptr, size_t size);
 int lwip_writev(int s, const struct iovec *iov, int iovcnt);
 int lwip_select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset,
-                struct timeval *timeout);
+                struct _timeval *timeout);
 int lwip_ioctl(int s, long cmd, void *argp);
 int lwip_fcntl(int s, int cmd, int val);
 
