@@ -168,7 +168,7 @@ static void tftp_thread(void *arg)
 
 
     /* Configure tftp server IP address */
-    IP4_ADDR(&server_addr, 192,168,0,2);
+    IP4_ADDR(&server_addr, 192, 168, 1, 2);
 
     /* Create a new UDP connection handle */
     conn = netconn_new(NETCONN_UDP);

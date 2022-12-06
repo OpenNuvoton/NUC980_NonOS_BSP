@@ -35,7 +35,7 @@ static void tcp_echoclient_netconn_thread(void *arg)
     u16_t buflen;
     char string[] = "nuvoton";
     
-    IP4_ADDR(&server_ip, 192, 168, 0, 2);
+    IP4_ADDR(&server_ip, 192, 168, 1, 2);
     /* Create a new TCP connection handle */
     conn = netconn_new(NETCONN_TCP);
 

@@ -32,7 +32,7 @@ static void udp_echoclient_netconn_thread(void *arg)
     char *data;
     ip_addr_t addr;
 
-    IP4_ADDR(&addr, 192,168,0,2);
+    IP4_ADDR(&addr, 192,168,1,2);
 
     /* Create a new UDP connection handle */
     conn = netconn_new(NETCONN_UDP);

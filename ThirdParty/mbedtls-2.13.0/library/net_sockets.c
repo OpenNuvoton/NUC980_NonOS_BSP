@@ -456,7 +456,7 @@ int mbedtls_net_set_nonblock( mbedtls_net_context *ctx )
 int mbedtls_net_poll( mbedtls_net_context *ctx, uint32_t rw, uint32_t timeout )
 {
     int ret;
-    struct timeval tv;
+    struct _timeval tv;
 
     fd_set read_fds;
     fd_set write_fds;
@@ -523,7 +523,7 @@ void mbedtls_net_usleep( unsigned long usec )
 #if defined(_WIN32)
     Sleep( ( usec + 999 ) / 1000 );
 #else
-    struct timeval tv;
+    struct _timeval tv;
     tv.tv_sec  = usec / 1000000;
 #if defined(__unix__) || defined(__unix) || \
     ( defined(__APPLE__) && defined(__MACH__) )
@@ -578,7 +578,7 @@ int mbedtls_net_recv_timeout( void *ctx, unsigned char *buf,
                               size_t len, uint32_t timeout )
 {
     int ret;
-    struct timeval tv;
+    struct _timeval tv;
     fd_set read_fds;
     int fd = ((mbedtls_net_context *) ctx)->fd;
 

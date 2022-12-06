@@ -68,7 +68,7 @@ struct _hr_time
 
 struct _hr_time
 {
-    struct timeval start;
+    struct _timeval start;
 };
 
 #endif /* _WIN32 && !EFIX64 && !EFI32 */
@@ -221,11 +221,11 @@ unsigned long mbedtls_timing_hardclock( void )
 #define HAVE_HARDCLOCK
 
 static int hardclock_init = 0;
-static struct timeval tv_init;
+static struct _timeval tv_init;
 
 unsigned long mbedtls_timing_hardclock( void )
 {
-    struct timeval tv_cur;
+    struct _timeval tv_cur;
 
     if( hardclock_init == 0 )
     {
@@ -306,7 +306,7 @@ unsigned long mbedtls_timing_get_timer( struct mbedtls_timing_hr_time *val, int 
     else
     {
         unsigned long delta;
-        struct timeval now;
+        struct _timeval now;
         gettimeofday( &now, NULL );
         delta = ( now.tv_sec  - t->start.tv_sec  ) * 1000ul
               + ( now.tv_usec - t->start.tv_usec ) / 1000;

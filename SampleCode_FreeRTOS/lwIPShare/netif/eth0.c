@@ -102,7 +102,7 @@ static int reset_phy(void)
     else
     {
         reg = mdio_read(CONFIG_PHY_ADDR, MII_LPA);
-        plugged = 1; // TODO
+        plugged = 1;
 
         if(reg & ADVERTISE_100FULL)
         {

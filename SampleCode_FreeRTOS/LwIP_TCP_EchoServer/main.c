@@ -28,7 +28,7 @@
 
 /* A TCP echo server which is implemented with LwIP under FreeRTOS.
    The server listen to port 80, IP address could configure statically
-   to 192.168.0.2 or assign by DHCP server. This server replies
+   to 192.168.1.2 or assign by DHCP server. This server replies
    "Hello World!!" if the received string is "nuvoton", otherwise
     reply "Wrong Password!!" to its client. */
 	
@@ -107,10 +107,9 @@ the documentation page on the http://www.FreeRTOS.org web site for more
 information. */
 #define mainCREATE_SIMPLE_LED_FLASHER_DEMO_ONLY        0
 
-//#define USE_DHCP
 #define ETHINTF    0
 
-#ifdef USE_DHCP
+#if (LWIP_DHCP == 1)
 #include "lwip/dhcp.h"
 #endif
 /*-----------------------------------------------------------*/
@@ -254,11 +253,9 @@ static void vTcpTask( void *pvParameters )
     netif_init_fn ethernetif_init = ethernetif_init1;
 #endif
 
-    IP4_ADDR(&gw, 192,168,0,1);
-    IP4_ADDR(&ipaddr, 192,168,0,2);
+    IP4_ADDR(&gw, 192,168,1,1);
+    IP4_ADDR(&ipaddr, 192,168,1,2);
     IP4_ADDR(&netmask, 255,255,255,0);
-
-    printf("Local IP:192.168.0.2\n");
 
     tcpip_init(NULL, NULL);
 
@@ -267,10 +264,11 @@ static void vTcpTask( void *pvParameters )
     netif_set_default(netif);
     netif_set_up(netif);
 
-#ifdef USE_DHCP
-    dhcp_start(netif);
-#endif
-
+    printf("[ TCP server ] \n");
+    printf("IP address:      %s\n", ip4addr_ntoa(&(*netif).ip_addr));
+    printf("Subnet mask:     %s\n", ip4addr_ntoa(&(*netif).netmask));
+    printf("Default gateway: %s\n", ip4addr_ntoa(&(*netif).gw));
+        
     tcp_echoserver_netconn_init();
 
     vTaskSuspend( NULL );

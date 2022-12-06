@@ -28,6 +28,7 @@ static u8_t rx_buf[RX_DESCRIPTOR_NUM][PACKET_BUFFER_SIZE];
 static u8_t tx_buf[TX_DESCRIPTOR_NUM][PACKET_BUFFER_SIZE];
 static int plugged = 0;
 
+extern portBASE_TYPE xInsideISR;
 extern void ethernetif_input1(u16_t len, u8_t *buf);
 
 /* Write PHY register */
@@ -186,6 +187,7 @@ void ETH1_RX_IRQHandler(void)
 {
     unsigned int status;
 
+    xInsideISR = pdTRUE;
     status = inpw(REG_EMAC1_MISTA) & 0xFFFF;
     outpw(REG_EMAC1_MISTA, status);
 
@@ -213,13 +215,14 @@ void ETH1_RX_IRQHandler(void)
     while (1);
 
     ETH1_TRIGGER_RX();
-
+    xInsideISR = pdFALSE;
 }
 
 void ETH1_TX_IRQHandler(void)
 {
     unsigned int cur_entry, status;
 
+    xInsideISR = pdTRUE;
     status = inpw(REG_EMAC1_MISTA) & 0xFFFF0000;
     outpw(REG_EMAC1_MISTA, status);
 
@@ -235,7 +238,7 @@ void ETH1_TX_IRQHandler(void)
     {
         fin_tx_desc_ptr = fin_tx_desc_ptr->next;
     }
-
+    xInsideISR = pdFALSE;
 }
 
 /* Check Ethernet link status */
