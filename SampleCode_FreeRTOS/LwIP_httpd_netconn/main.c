@@ -240,6 +240,7 @@ void vApplicationTickHook( void )
 
 static void vWebTask( void *pvParameters )
 {
+	printf("vWebTask started\n");
     ip_addr_t ipaddr;
     ip_addr_t netmask;
     ip_addr_t gw;
@@ -258,8 +259,9 @@ static void vWebTask( void *pvParameters )
     IP4_ADDR(&netmask, 0, 0, 0, 0);
 #else
     IP4_ADDR(&gw, 192,168,1,1);
-    IP4_ADDR(&ipaddr, 192,168,1,2);
+    IP4_ADDR(&ipaddr, 192,168,1,27);
     IP4_ADDR(&netmask, 255,255,255,0);
+    printf("assigned ip 192.168.1.27\n");
 #endif
     tcpip_init(NULL, NULL);
 
