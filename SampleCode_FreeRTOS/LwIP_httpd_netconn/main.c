@@ -137,8 +137,8 @@ int main(void)
     xTaskCreate( vWebTask, "Web", TCPIP_THREAD_STACKSIZE, NULL, mainCHECK_TASK_PRIORITY, NULL );
 
     //vStartBlockingQueueTasks( mainBLOCK_Q_PRIORITY );
-    vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY );
-    vStartSemaphoreTasks( mainSEM_TEST_PRIORITY );
+//    vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY );
+//    vStartSemaphoreTasks( mainSEM_TEST_PRIORITY );
 
     //Following prevents vWebTask to start
     //vStartGenericQueueTasks( tskIDLE_PRIORITY );
@@ -216,7 +216,7 @@ void vApplicationStackOverflowHook( xTaskHandle pxTask, signed char *pcTaskName 
 {
     ( void ) pcTaskName;
     ( void ) pxTask;
-    printf("vApplicationStackOverflowHook happned \n");
+    printf("vApplicationStackOverflowHook happned task %s\n", pcTaskName);
 
     /* Run time stack overflow checking is performed if
     configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2.  This hook
@@ -245,65 +245,66 @@ void vApplicationTickHook( void )
 static void vWebTask( void *pvParameters )
 {
 	printf("vWebTask started\n");
-	while(1)
-	{
-		vTaskDelay(1000);
-		printf("vWebTask running\n");
-	}
 
-//    ip_addr_t ipaddr;
-//    ip_addr_t netmask;
-//    ip_addr_t gw;
-//#if (ETHINTF == 0)
-//    struct netif *netif = &netif0;
-//    netif_init_fn ethernetif_init = ethernetif_init0;
-//#else
-//    struct netif *netif = &netif1;
-//    netif_init_fn ethernetif_init = ethernetif_init1;
-//#endif
-//
-//#if (LWIP_DHCP == 1)
-//	/* To enable DHCP, set LWIP_DHCP to 1 in lwipopts.h */
-//	IP4_ADDR(&gw, 0, 0, 0, 0);
-//    IP4_ADDR(&ipaddr, 0, 0, 0, 0);
-//    IP4_ADDR(&netmask, 0, 0, 0, 0);
-//#else
-//    IP4_ADDR(&gw, 192,168,1,1);
-//    IP4_ADDR(&ipaddr, 192,168,1,27);
-//    IP4_ADDR(&netmask, 255,255,255,0);
-//    printf("assigned ip 192.168.1.27\n");
-//#endif
-//    tcpip_init(NULL, NULL);
-//
-//    netif_add(netif, &ipaddr, &netmask, &gw, NULL, ethernetif_init, tcpip_input);
-//
-//    netif_set_default(netif);
-//    netif_set_up(netif);
-//
-//#if (LWIP_DHCP == 1)
-//    printf("DHCP starting ...\n");
-//
-//    if(dhcp_start(netif) == ERR_OK)
-//    {
-//        while(dhcp_supplied_address(netif) == 0)
-//        {
-//            vTaskDelay(10000);
-//            break;
-//        }
-//    }
-//    else
-//    {
-//        printf("DHCP fail\n");
-//        while(1) {}
-//    }
-//#endif
-//
-//    printf("[ httpd_netconn ] \n");
-//    printf("IP address:      %s\n", ip4addr_ntoa(&(*netif).ip_addr));
-//    printf("Subnet mask:     %s\n", ip4addr_ntoa(&(*netif).netmask));
-//    printf("Default gateway: %s\n", ip4addr_ntoa(&(*netif).gw));
-//
-//    http_server_netconn_init();
-//
-//    vTaskSuspend( NULL );
+    ip_addr_t ipaddr;
+    ip_addr_t netmask;
+    ip_addr_t gw;
+#if (ETHINTF == 0)
+    struct netif *netif = &netif0;
+    netif_init_fn ethernetif_init = ethernetif_init0;
+#else
+    struct netif *netif = &netif1;
+    netif_init_fn ethernetif_init = ethernetif_init1;
+#endif
+
+#if (LWIP_DHCP == 1)
+	/* To enable DHCP, set LWIP_DHCP to 1 in lwipopts.h */
+	IP4_ADDR(&gw, 0, 0, 0, 0);
+    IP4_ADDR(&ipaddr, 0, 0, 0, 0);
+    IP4_ADDR(&netmask, 0, 0, 0, 0);
+#else
+    IP4_ADDR(&gw, 192,168,1,1);
+    IP4_ADDR(&ipaddr, 192,168,1,27);
+    IP4_ADDR(&netmask, 255,255,255,0);
+    printf("assigned ip 192.168.1.27\n");
+#endif
+    tcpip_init(NULL, NULL);
+
+    netif_add(netif, &ipaddr, &netmask, &gw, NULL, ethernetif_init, tcpip_input);
+
+    netif_set_default(netif);
+    netif_set_up(netif);
+
+#if (LWIP_DHCP == 1)
+    printf("DHCP starting ...\n");
+
+    if(dhcp_start(netif) == ERR_OK)
+    {
+        while(dhcp_supplied_address(netif) == 0)
+        {
+            vTaskDelay(10000);
+            break;
+        }
+    }
+    else
+    {
+        printf("DHCP fail\n");
+        while(1) {}
+    }
+#endif
+
+    printf("[ httpd_netconn ] \n");
+    printf("IP address:      %s\n", ip4addr_ntoa(&(*netif).ip_addr));
+    printf("Subnet mask:     %s\n", ip4addr_ntoa(&(*netif).netmask));
+    printf("Default gateway: %s\n", ip4addr_ntoa(&(*netif).gw));
+
+    http_server_netconn_init();
+
+    vTaskSuspend( NULL );
+//	while(1)
+//	{
+//		vTaskDelay(1000);
+//		printf("vWebTask running\n");
+//	}
+
 }
