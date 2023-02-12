@@ -45,6 +45,11 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
+			<name>Startup</name>
+			<type>2</type>
+			<locationURI>PARENT-3-PROJECT_LOC/SampleCode/FreeRTOS/GCC/Startup</locationURI>
+		</link>
+		<link>
 			<name>Driver/Driver</name>
 			<type>2</type>
 			<locationURI>PARENT-3-PROJECT_LOC/Driver/Source</locationURI>
@@ -193,7 +198,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>0</id>
+			<id>1676205980803</id>
 			<name>Driver/Driver</name>
 			<type>5</type>
 			<matcher>
@@ -202,7 +207,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>0</id>
+			<id>1676205980807</id>
 			<name>Driver/Driver</name>
 			<type>5</type>
 			<matcher>
@@ -211,7 +216,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>0</id>
+			<id>1676205980813</id>
 			<name>Driver/Driver</name>
 			<type>5</type>
 			<matcher>
@@ -220,16 +225,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>0</id>
-			<name>Driver/Driver</name>
-			<type>5</type>
-			<matcher>
-				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-false-Startup_GCC.S</arguments>
-			</matcher>
-		</filter>
-		<filter>
-			<id>0</id>
+			<id>1676205980817</id>
 			<name>Driver/Driver</name>
 			<type>5</type>
 			<matcher>
@@ -238,7 +234,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>0</id>
+			<id>1676205980822</id>
 			<name>Driver/Driver</name>
 			<type>5</type>
 			<matcher>
