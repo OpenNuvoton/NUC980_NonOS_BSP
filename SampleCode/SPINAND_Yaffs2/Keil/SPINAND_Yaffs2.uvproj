@@ -377,7 +377,7 @@
               <MiscControls>--diag_suppress=68,223,188,1293,61</MiscControls>
               <Define>CONFIG_YAFFS_DIRECT, CONFIG_YAFFS_SHORT_NAMES_IN_RAM, CONFIG_YAFFS_YAFFS2, NO_Y_INLINE, CONFIG_YAFFS_PROVIDE_DEFS, CONFIG_YAFFSFS_PROVIDE_VALUES, __UBOOT__, CONFIG_MTD_PARTITIONS</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\Driver\Include;..\..\ThirdParty\yaffs2\include;..\..\ThirdParty\yaffs2;..\..\ThirdParty\yaffs2\include\asm;..\..\ThirdParty\yaffs2\include\linux;..\..\Library\NandLib;..\..\ThirdParty\bch</IncludePath>
+              <IncludePath>..\..\..\Driver\Include;..\..\..\ThirdParty\yaffs2\include;..\..\..\ThirdParty\yaffs2;..\..\..\ThirdParty\yaffs2\include\asm;..\..\..\ThirdParty\yaffs2\include\linux;..\..\..\Library\NandLib;..\..\..\ThirdParty\bch</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -408,7 +408,7 @@
             <TextAddressRange>0x00000000</TextAddressRange>
             <DataAddressRange>0x00080000</DataAddressRange>
             <pXoBase></pXoBase>
-            <ScatterFile>..\..\Script\nuc980.sct</ScatterFile>
+            <ScatterFile>..\..\..\Script\nuc980.sct</ScatterFile>
             <IncludeLibs></IncludeLibs>
             <IncludeLibsPath></IncludeLibsPath>
             <Misc>--entry 0x8000</Misc>
@@ -424,17 +424,17 @@
             <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\main.c</FilePath>
+              <FilePath>..\main.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_glue.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\yaffs_glue.c</FilePath>
+              <FilePath>..\yaffs_glue.c</FilePath>
             </File>
             <File>
               <FileName>spi_nand.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\spi_nand.c</FilePath>
+              <FilePath>..\spi_nand.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -444,37 +444,37 @@
             <File>
               <FileName>sys.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\Driver\Source\sys.c</FilePath>
+              <FilePath>..\..\..\Driver\Source\sys.c</FilePath>
             </File>
             <File>
               <FileName>cache.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\Driver\Source\cache.c</FilePath>
+              <FilePath>..\..\..\Driver\Source\cache.c</FilePath>
             </File>
             <File>
               <FileName>retarget.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\Driver\Source\retarget.c</FilePath>
+              <FilePath>..\..\..\Driver\Source\retarget.c</FilePath>
             </File>
             <File>
               <FileName>startup.s</FileName>
               <FileType>2</FileType>
-              <FilePath>..\..\Driver\Source\startup.s</FilePath>
+              <FilePath>..\..\..\Driver\Source\startup.s</FilePath>
             </File>
             <File>
               <FileName>vector.s</FileName>
               <FileType>2</FileType>
-              <FilePath>..\..\Driver\Source\vector.s</FilePath>
+              <FilePath>..\..\..\Driver\Source\vector.s</FilePath>
             </File>
             <File>
               <FileName>etimer.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\Driver\Source\etimer.c</FilePath>
+              <FilePath>..\..\..\Driver\Source\etimer.c</FilePath>
             </File>
             <File>
               <FileName>qspi.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\Driver\Source\qspi.c</FilePath>
+              <FilePath>..\..\..\Driver\Source\qspi.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -482,164 +482,164 @@
           <GroupName>YAFFS2</GroupName>
           <Files>
             <File>
-              <FileName>fmi_nand.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\platform\fmi_nand.c</FilePath>
-            </File>
-            <File>
               <FileName>mtdcore.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\mtdcore.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\mtdcore.c</FilePath>
             </File>
             <File>
               <FileName>mtdpart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\mtdpart.c</FilePath>
-            </File>
-            <File>
-              <FileName>nand.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\nand.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\mtdpart.c</FilePath>
             </File>
             <File>
               <FileName>nand_base.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\nand_base.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\nand_base.c</FilePath>
             </File>
             <File>
               <FileName>nand_bbt.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\nand_bbt.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\nand_bbt.c</FilePath>
             </File>
             <File>
               <FileName>nand_ids.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\nand_ids.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\nand_ids.c</FilePath>
             </File>
             <File>
               <FileName>nand_util.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\nand_util.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\nand_util.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_allocator.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_allocator.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_allocator.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_attribs.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_attribs.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_attribs.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_bitmap.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_bitmap.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_bitmap.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_checkptrw.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_checkptrw.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_checkptrw.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_ecc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_ecc.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_ecc.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_error.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_error.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_error.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_guts.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_guts.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_guts.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_mtdif.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_mtdif.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_mtdif.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_mtdif2.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_mtdif2.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_mtdif2.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_nameval.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_nameval.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_nameval.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_nand.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_nand.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_nand.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_packedtags1.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_packedtags1.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_packedtags1.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_packedtags2.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_packedtags2.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_packedtags2.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_qsort.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_qsort.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_qsort.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_summary.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_summary.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_summary.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_tagscompat.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_tagscompat.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_tagscompat.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_verify.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_verify.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_verify.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_yaffs1.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_yaffs1.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_yaffs1.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_yaffs2.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_yaffs2.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_yaffs2.c</FilePath>
             </File>
             <File>
               <FileName>yaffsfs.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffsfs.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffsfs.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_hweight.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_hweight.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_hweight.c</FilePath>
             </File>
             <File>
               <FileName>yaffs_malloc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\yaffs_malloc.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\yaffs_malloc.c</FilePath>
             </File>
             <File>
               <FileName>linux_string.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\linux_string.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\linux_string.c</FilePath>
             </File>
             <File>
               <FileName>ctype.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\ThirdParty\yaffs2\ctype.c</FilePath>
+              <FilePath>..\..\..\ThirdParty\yaffs2\ctype.c</FilePath>
+            </File>
+            <File>
+              <FileName>fmi_nand.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\yaffs2\platform\fmi_nand.c</FilePath>
+            </File>
+            <File>
+              <FileName>nand.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\ThirdParty\yaffs2\nand.c</FilePath>
             </File>
           </Files>
         </Group>

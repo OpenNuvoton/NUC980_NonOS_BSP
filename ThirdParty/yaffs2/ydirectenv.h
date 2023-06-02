@@ -25,6 +25,7 @@
 
 #include "yaffs_osglue.h"
 #include "yaffs_hweight.h"
+#include "yaffs_malloc.h"
 
 extern void qsort(void *base, size_t nmemb, size_t size, int(*compar)(const void *, const void *));
 void yaffs_bug_fn(const char *file_name, int line_no);
@@ -71,7 +72,7 @@ size_t strnlen(const char *s, size_t maxlen);
 #endif
 
 #define kmalloc(x, flags) yaffsfs_malloc(x)
-#define kfree(x)   yaffsfs_free(x)
+#define kfree(x)   yaffs_free(x)//yaffsfs_free(x)
 #define vmalloc(x) yaffsfs_malloc(x)
 #define vfree(x) yaffsfs_free(x)
 

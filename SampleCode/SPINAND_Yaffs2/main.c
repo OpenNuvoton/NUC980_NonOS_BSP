@@ -9,6 +9,7 @@
  * Copyright (C) 2019 Nuvoton Technology Corp. All rights reserved.
 *****************************************************************************/
 #include <string.h>
+#include "stdio.h"
 
 #include "nuc980.h"
 #include "sys.h"
@@ -64,9 +65,6 @@ void UART_Init()
     outpw(REG_UART0_LCR, inpw(REG_UART0_LCR) | 0x07);
     outpw(REG_UART0_BAUD, 0x30000066); /* 12MHz reference clock input, 115200 */
 }
-
-/*******************************************************************************/
-extern void nand_init(void);
 
 /*---------------------------------------------------------------------------------------------------------*/
 /* Global variables                                                                                        */
@@ -130,7 +128,7 @@ int main(void)
 
     for (;;) {
 
-        printf(">");
+        printf(">\n");
         ptr = CommandLine;
         get_line(ptr, sizeof(CommandLine));
         switch (*ptr++) {
