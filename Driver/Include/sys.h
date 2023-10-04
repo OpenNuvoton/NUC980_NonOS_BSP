@@ -155,6 +155,7 @@ typedef enum CLKn
 #define D_CACHE         7
 #define I_D_CACHE       8
 
+#define DEF_CACHE_LINE_SIZE     32
 
 /// @endcond HIDDEN_SYMBOLS
 
@@ -812,6 +813,11 @@ INT32   sysGetSdramSizebyMB(void);
 void    sysInvalidCache(void);
 
 UINT32 sysGetClock(CLK_Type clk);
+
+void sysCleanInvalidatedDcache(UINT32 buffer, UINT32 size);
+void sysCleanDcache(UINT32 buffer, UINT32 size);
+void sysInvalidateDcache(UINT32 buffer, UINT32 size);
+void sysInvalidateDcacheAll(void);
 
 typedef void (*sys_pvFunPtr)();   /* function pointer */
 extern sys_pvFunPtr sysIrqHandlerTable[];
