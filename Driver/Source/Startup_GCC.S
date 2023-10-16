@@ -59,6 +59,7 @@ Undef_Addr:     .word   Undef_Handler
 SWI_Addr:       .word   SWI_Handler
 PAbt_Addr:      .word   PAbt_Handler
 DAbt_Addr:      .word   DAbt_Handler
+ZeroAddr:       .word   0
 IRQ_Addr:       .word   IRQ_Handler
 FIQ_Addr:       .word   FIQ_Handler
 

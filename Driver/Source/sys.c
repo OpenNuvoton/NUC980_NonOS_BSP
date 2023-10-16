@@ -209,15 +209,9 @@ void SYS_FIQ_Shell(void)
 
 void sysInitializeAIC()
 {
-#if defined (__GNUC__) && !(__CC_ARM)
-    *(unsigned int volatile *)0x34 = (unsigned int volatile)sysIrqHandler;
-
-    *(unsigned int volatile *)0x38 = (unsigned int volatile)sysFiqHandler;
-#else
     *(unsigned int volatile *)0x38 = (unsigned int)sysIrqHandler;
 
     *(unsigned int volatile *)0x3C = (unsigned int)sysFiqHandler;
-#endif
 }
 /// @endcond HIDDEN_SYMBOLS
 
