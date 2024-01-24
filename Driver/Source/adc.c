@@ -387,8 +387,8 @@ INT adcIoctl(ADC_CMD cmd, INT32 arg1, INT32 arg2)
         reg = inpw(REG_ADC_CONF);
         reg = reg & ~ADC_CONF_NACEN;
         outpw(REG_ADC_CONF, reg);
-        adcHandler.normal_callback = NULL;
-        adcHandler.normal_userData = NULL;
+        adcHandler.normal_callback = (ADC_CALLBACK)NULL;
+        adcHandler.normal_userData = (UINT32)NULL;
     }
     break;
     case START_MST_POLLING:             //Menu Start Conversion
@@ -458,8 +458,8 @@ INT adcIoctl(ADC_CMD cmd, INT32 arg1, INT32 arg2)
         reg = inpw(REG_ADC_IER);
         reg = reg & ~ADC_IER_PEDEIEN;
         outpw(REG_ADC_IER, reg);
-        adcHandler.pendown_callback = NULL;
-        adcHandler.pendown_userData = NULL;
+        adcHandler.pendown_callback = (ADC_CALLBACK)NULL;
+        adcHandler.pendown_userData = (UINT32)NULL;
     }
     break;
 
@@ -489,8 +489,8 @@ INT adcIoctl(ADC_CMD cmd, INT32 arg1, INT32 arg2)
         reg = inpw(REG_ADC_CONF);
         reg = reg & ~ADC_CONF_TEN;
         outpw(REG_ADC_CONF, reg);
-        adcHandler.touch_callback = NULL;
-        adcHandler.touch_userData = NULL;
+        adcHandler.touch_callback = (ADC_CALLBACK)NULL;
+        adcHandler.touch_userData = (UINT32)NULL;
     }
     break;
     case Z_ON:   //Enable Press measure function
