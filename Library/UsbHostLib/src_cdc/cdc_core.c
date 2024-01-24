@@ -17,7 +17,7 @@
 #include "usbh_cdc.h"
 
 
-/** @addtogroup LIBRARY Library
+/** @addtogroup Library Library
   @{
 */
 
