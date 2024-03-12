@@ -399,8 +399,8 @@ typedef struct
 /*  GPIO External interrupt Constant Definitions                                                           */
 /*---------------------------------------------------------------------------------------------------------*/
 #define GPIO_MFP_PA0MFP_EINT0   outpw(REG_SYS_GPA_MFPL, ((inpw(REG_SYS_GPA_MFPL) & 0xFFFFFFF0) | 0x00000005)) /*!< PA0 MFP setting for EINT0  \hideinitializer */
-#define GPIO_MFP_PA13MFP_EINT0  outpw(REG_SYS_GPA_MFPH, ((inpw(REG_SYS_GPA_MFPH) & 0xFF0FFFFF) | 0x00D00000)) /*!< PA13 MFP setting for EINT0  \hideinitializer */
-#define GPIO_MFP_PA1MFP_EINT1   outpw(REG_SYS_GPA_MFPL, ((inpw(REG_SYS_GPA_MFPL) & 0xFFFFFF0F) | 0x000000D0)) /*!< PA1 MFP setting for EINT1  \hideinitializer */
+#define GPIO_MFP_PA13MFP_EINT0  outpw(REG_SYS_GPA_MFPH, ((inpw(REG_SYS_GPA_MFPH) & 0xFF0FFFFF) | 0x00800000)) /*!< PA13 MFP setting for EINT0  \hideinitializer */
+#define GPIO_MFP_PA1MFP_EINT1   outpw(REG_SYS_GPA_MFPL, ((inpw(REG_SYS_GPA_MFPL) & 0xFFFFFF0F) | 0x00000050)) /*!< PA1 MFP setting for EINT1  \hideinitializer */
 #define GPIO_MFP_PA14MFP_EINT1  outpw(REG_SYS_GPA_MFPH, ((inpw(REG_SYS_GPA_MFPH) & 0xF0FFFFFF) | 0x08000000)) /*!< PA14 MFP setting for EINT1  \hideinitializer */
 #define GPIO_MFP_PD0MFP_EINT2   outpw(REG_SYS_GPD_MFPL, ((inpw(REG_SYS_GPD_MFPL) & 0xFFFFFFF0) | 0x00000004)) /*!< PD0 MFP setting for EINT2  \hideinitializer */
 #define GPIO_MFP_PE10MFP_EINT2  outpw(REG_SYS_GPE_MFPH, ((inpw(REG_SYS_GPE_MFPH) & 0xFFFFF0FF) | 0x00000500)) /*!< PE10 MFP setting for EINT2  \hideinitializer */
