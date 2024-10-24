@@ -38,6 +38,17 @@
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
 
+#define LWIP_DEBUG LWIP_DBG_LEVEL_WARNING
+#define NETIF_DEBUG LWIP_DBG_ON
+#define DHCP_DEBUG LWIP_DBG_ON
+#define TCP_DEBUG LWIP_DBG_ON
+#define TCP_INPUT_DEBUG LWIP_DBG_ON	// Enable debugging in tcp_in.c for incoming debug.
+#define TCP_OUTPUT_DEBUG LWIP_DBG_ON	// TCP_OUTPUT_DEBUG: Enable debugging in tcp_out.c output functions.
+#define ICMP_DEBUG LWIP_DBG_ON
+#define TCP_CWND_DEBUG LWIP_DBG_ON	// Enable debugging for TCP congestion window.
+#define TCP_FR_DEBUG LWIP_DBG_ON	// TCP_FR_DEBUG: Enable debugging in tcp_in.c for fast retransmit.
+
+
 /*
  * Include user defined options first. Anything not defined in these files
  * will be set to standard values. Override anything you dont like!
@@ -49,13 +60,13 @@
 #define LWIP_SOCKET_SET_ERRNO           0
 
 #define LWIP_RAND                       xTaskGetTickCount
-//#define LWIP_DHCP                       1
+#define LWIP_DHCP                       0
 #define LWIP_POSIX_SOCKETS_IO_NAMES     1
 #define SO_REUSE                        1
 // Needs 2 more for detect EMAC link status
 #define MEMP_NUM_SYS_TIMEOUT            2 + (LWIP_TCP + IP_REASSEMBLY + LWIP_ARP + (2*LWIP_DHCP) + LWIP_AUTOIP + LWIP_IGMP + LWIP_DNS + (PPP_SUPPORT*6*MEMP_NUM_PPP_PCB) + (LWIP_IPV6 ? (1 + LWIP_IPV6_REASS + LWIP_IPV6_MLD) : 0))
 
-#define TCPIP_THREAD_STACKSIZE          350
+#define TCPIP_THREAD_STACKSIZE          2048
 #define TCPIP_THREAD_PRIO               2
 #define TCPIP_MBOX_SIZE                 10
 #define DEFAULT_TCP_RECVMBOX_SIZE       5

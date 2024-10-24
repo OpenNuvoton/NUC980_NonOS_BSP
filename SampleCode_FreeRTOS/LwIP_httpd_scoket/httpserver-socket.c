@@ -28,6 +28,7 @@ char au8Buf[RX_BUFFER_LEN];
   */
 void http_server_serve(int clientfd)
 {
+	printf("http_server_serve\n");
     struct fs_file * file;
     
     if(recv(clientfd, au8Buf, sizeof(au8Buf), 0) < 0)
@@ -72,8 +73,9 @@ out:
   * @param arg pointer on argument(not used here)
   * @retval None
   */
-static void http_server_socket_thread(void *arg)
+void http_server_socket_thread(void *arg)
 {
+	printf("http_server_socket_thread\n");
     int sockfd, clientfd, size;
     struct sockaddr_in addr, client_addr;
 
@@ -112,5 +114,6 @@ static void http_server_socket_thread(void *arg)
   */
 void http_server_socket_init()
 {
+	printf("http_server_socket_init\n");
     sys_thread_new("HTTP", http_server_socket_thread, NULL, WEBSERVER_THREAD_STACKSIZE, WEBSERVER_THREAD_PRIO);
 }

@@ -38,6 +38,17 @@
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
 
+#define LWIP_DEBUG LWIP_DBG_LEVEL_WARNING
+#define NETIF_DEBUG LWIP_DBG_ON
+#define DHCP_DEBUG LWIP_DBG_ON
+#define TCP_DEBUG LWIP_DBG_ON
+#define TCP_INPUT_DEBUG LWIP_DBG_ON	// Enable debugging in tcp_in.c for incoming debug.
+#define TCP_OUTPUT_DEBUG LWIP_DBG_ON	// TCP_OUTPUT_DEBUG: Enable debugging in tcp_out.c output functions.
+#define ICMP_DEBUG LWIP_DBG_ON
+#define TCP_CWND_DEBUG LWIP_DBG_ON	// Enable debugging for TCP congestion window.
+#define TCP_FR_DEBUG LWIP_DBG_ON	// TCP_FR_DEBUG: Enable debugging in tcp_in.c for fast retransmit.
+
+
 /*
  * Include user defined options first. Anything not defined in these files
  * will be set to standard values. Override anything you dont like!
