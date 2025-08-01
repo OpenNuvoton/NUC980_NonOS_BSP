@@ -67,7 +67,6 @@ UINT ETIMER_Open(UINT timer, UINT u32Mode, UINT u32Freq)
 {
     UINT u32Clk = ETIMER_GetModuleClock(timer);
     UINT u32Cmpr = 0, u32Prescale = 0;
-
     // Fastest possible timer working freq is u32Clk / 2. While cmpr = 2, pre-scale = 0
     if(u32Freq > (u32Clk / 2))
     {
@@ -75,29 +74,12 @@ UINT ETIMER_Open(UINT timer, UINT u32Mode, UINT u32Freq)
     }
     else
     {
-        if(u32Clk >= 0x8000000)
-        {
-            u32Prescale = 15;    // real prescaler value is 16
-            u32Clk >>= 4;
-        }
-        else if(u32Clk >= 0x4000000)
-        {
-            u32Prescale = 7;    // real prescaler value is 8
-            u32Clk >>= 3;
-        }
-        else if(u32Clk >= 0x2000000)
-        {
-            u32Prescale = 3;    // real prescaler value is 4
-            u32Clk >>= 2;
-        }
-        else if(u32Clk >= 0x1000000)
-        {
-            u32Prescale = 1;    // real prescaler value is 2
-            u32Clk >>= 1;
-        }
         u32Cmpr = u32Clk / u32Freq;
-    }
+        u32Prescale = (u32Cmpr >> 24);  /* for 24 bits CMPDAT */
 
+        if (u32Prescale > 0UL)
+            u32Cmpr = u32Cmpr / (u32Prescale + 1UL);
+    }
     if(timer == 0)
     {
         outpw(REG_ETMR0_CMPR, u32Cmpr);
