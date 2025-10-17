@@ -505,9 +505,10 @@ int32_t CAN_BasicReceiveMsg(CAN_T *tCAN, STR_CANMSG_T* pCanMsg)
             pCanMsg->Id |= (uint32_t)tCAN->IF[1].ARB1;
         }
 
-        pCanMsg->FrameType = (((tCAN->IF[1].ARB2 & CAN_IF_ARB2_DIR_Msk) >> CAN_IF_ARB2_DIR_Pos)) ? 0ul : 1ul;
-
+        pCanMsg->FrameType = (((tCAN->IF[1].ARB2 & CAN_IF_ARB2_DIR_Msk) >> CAN_IF_ARB2_DIR_Pos)) ? CAN_REMOTE_FRAME : CAN_DATA_FRAME;
         pCanMsg->DLC     = (uint8_t)(tCAN->IF[1].MCON & CAN_IF_MCON_DLC_Msk);
+        if (pCanMsg->FrameType == CAN_DATA_FRAME)
+        {
         pCanMsg->Data[0] = (uint8_t)(tCAN->IF[1].DAT_A1 & CAN_IF_DAT_A1_DATA0_Msk);
         pCanMsg->Data[1] = (uint8_t)((tCAN->IF[1].DAT_A1 & CAN_IF_DAT_A1_DATA1_Msk) >> CAN_IF_DAT_A1_DATA1_Pos);
         pCanMsg->Data[2] = (uint8_t)(tCAN->IF[1].DAT_A2 & CAN_IF_DAT_A2_DATA2_Msk);
@@ -516,6 +517,7 @@ int32_t CAN_BasicReceiveMsg(CAN_T *tCAN, STR_CANMSG_T* pCanMsg)
         pCanMsg->Data[5] = (uint8_t)((tCAN->IF[1].DAT_B1 & CAN_IF_DAT_B1_DATA5_Msk) >> CAN_IF_DAT_B1_DATA5_Pos);
         pCanMsg->Data[6] = (uint8_t)(tCAN->IF[1].DAT_B2 & CAN_IF_DAT_B2_DATA6_Msk);
         pCanMsg->Data[7] = (uint8_t)((tCAN->IF[1].DAT_B2 & CAN_IF_DAT_B2_DATA7_Msk) >> CAN_IF_DAT_B2_DATA7_Pos);
+    }
     }
 
     return rev;
@@ -569,7 +571,6 @@ int32_t CAN_SetRxMsgObjAndMsk(CAN_T *tCAN, uint8_t u8MsgObj, uint8_t u8idType, u
         tCAN->IF[u32MsgIfNum].MASK1 = (u32idmask & 0xFFFFul);
         tCAN->IF[u32MsgIfNum].MASK2 = (u32idmask >> 16) & 0xFFFFul;
 
-        /* tCAN->IF[u32MsgIfNum].MCON |= CAN_IF_MCON_UMASK_Msk | CAN_IF_MCON_RXIE_Msk; */
         tCAN->IF[u32MsgIfNum].MCON = CAN_IF_MCON_UMASK_Msk | CAN_IF_MCON_RXIE_Msk;
         if(u8singleOrFifoLast)
         {
@@ -721,7 +722,14 @@ int32_t CAN_ReadMsgObj(CAN_T *tCAN, uint8_t u8MsgObj, uint8_t u8Release, STR_CAN
                 pCanMsg->Id  = (((tCAN->IF[u32MsgIfNum].ARB2) & 0x1FFFul) << 16) | tCAN->IF[u32MsgIfNum].ARB1;
             }
 
+            /* On receiving, ARB2.DIR- 0: Data frame, 1: Remote frame. */
+            pCanMsg->FrameType = (((tCAN->IF[u32MsgIfNum].ARB2 & CAN_IF_ARB2_DIR_Msk) >> CAN_IF_ARB2_DIR_Pos)) ? CAN_REMOTE_FRAME : CAN_DATA_FRAME;
+
+            /* Fetch data length */
             pCanMsg->DLC     = (uint8_t)(tCAN->IF[u32MsgIfNum].MCON & CAN_IF_MCON_DLC_Msk);
+            /* If it is data frame, get all data filed. */
+            if (pCanMsg->FrameType == CAN_DATA_FRAME)
+            {
             pCanMsg->Data[0] = (uint8_t)(tCAN->IF[u32MsgIfNum].DAT_A1 & CAN_IF_DAT_A1_DATA0_Msk);
             pCanMsg->Data[1] = (uint8_t)((tCAN->IF[u32MsgIfNum].DAT_A1 & CAN_IF_DAT_A1_DATA1_Msk) >> CAN_IF_DAT_A1_DATA1_Pos);
             pCanMsg->Data[2] = (uint8_t)(tCAN->IF[u32MsgIfNum].DAT_A2 & CAN_IF_DAT_A2_DATA2_Msk);
@@ -730,6 +738,7 @@ int32_t CAN_ReadMsgObj(CAN_T *tCAN, uint8_t u8MsgObj, uint8_t u8Release, STR_CAN
             pCanMsg->Data[5] = (uint8_t)((tCAN->IF[u32MsgIfNum].DAT_B1 & CAN_IF_DAT_B1_DATA5_Msk) >> CAN_IF_DAT_B1_DATA5_Pos);
             pCanMsg->Data[6] = (uint8_t)(tCAN->IF[u32MsgIfNum].DAT_B2 & CAN_IF_DAT_B2_DATA6_Msk);
             pCanMsg->Data[7] = (uint8_t)((tCAN->IF[u32MsgIfNum].DAT_B2 & CAN_IF_DAT_B2_DATA7_Msk) >> CAN_IF_DAT_B2_DATA7_Pos);
+            }
 
             ReleaseIF(tCAN, u32MsgIfNum);
         }
@@ -854,8 +863,6 @@ uint32_t CAN_SetBaudRate(CAN_T *tCAN, uint32_t u32BaudRate)
     tCAN->BTIME = ((uint32_t)(tseg2 - 1ul) << CAN_BTIME_TSEG2_Pos) | ((uint32_t)(tseg1 - 1ul) << CAN_BTIME_TSEG1_Pos) |
                   ((uint32_t)(best_brp - 1ul) & CAN_BTIME_BRP_Msk) | (sjw << CAN_BTIME_SJW_Pos);
     tCAN->BRPE  = ((uint32_t)(best_brp - 1ul) >> 6) & 0x0Ful;
-
-    /* printf("\n bitrate = %d \n", CAN_GetCANBitRate(tCAN)); */
 
     CAN_LeaveInitMode(tCAN);
 
