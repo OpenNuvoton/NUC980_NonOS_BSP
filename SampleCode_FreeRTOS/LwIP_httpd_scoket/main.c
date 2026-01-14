@@ -28,7 +28,7 @@
 
 /* A simple HTTP server demonstrates LwIP under FreeRTOS.
    The server's IP address could configure statically to
-   192.168.1.2, or assign by DHCP server. */
+   192.168.1.27, or assign by DHCP server. */
 
 #include <stdio.h>
 
@@ -137,10 +137,12 @@ int main(void)
     xTaskCreate( vWebTask, "Web", TCPIP_THREAD_STACKSIZE, NULL, mainCHECK_TASK_PRIORITY, NULL );
 
     //vStartBlockingQueueTasks( mainBLOCK_Q_PRIORITY );
-    vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY );
-    vStartSemaphoreTasks( mainSEM_TEST_PRIORITY );
-    vStartGenericQueueTasks( tskIDLE_PRIORITY );
-    vStartQueueSetTasks();
+
+    //Following prevent vWebTask from Running
+//    vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY );
+//    vStartSemaphoreTasks( mainSEM_TEST_PRIORITY );
+//    vStartGenericQueueTasks( tskIDLE_PRIORITY );
+//    vStartQueueSetTasks();
 
 
     printf("FreeRTOS is starting ...\n");
@@ -190,6 +192,7 @@ void vApplicationMallocFailedHook( void )
     FreeRTOSConfig.h, and the xPortGetFreeHeapSize() API function can be used
     to query the size of free heap space that remains (although it does not
     provide information on how the remaining heap might be fragmented). */
+	printf("vApplicationMallocFailedHook happned \n");
     taskDISABLE_INTERRUPTS();
     for( ;; );
 }
@@ -211,6 +214,7 @@ void vApplicationIdleHook( void )
 
 void vApplicationStackOverflowHook( xTaskHandle pxTask, signed char *pcTaskName )
 {
+    printf("vApplicationStackOverflowHook happned task %s\n", *pcTaskName);
     ( void ) pcTaskName;
     ( void ) pxTask;
 
@@ -258,7 +262,7 @@ static void vWebTask( void *pvParameters )
     IP4_ADDR(&netmask, 0, 0, 0, 0);
 #else
     IP4_ADDR(&gw, 192,168,1,1);
-    IP4_ADDR(&ipaddr, 192,168,1,2);
+    IP4_ADDR(&ipaddr, 192,168,1,27);
     IP4_ADDR(&netmask, 255,255,255,0);
 #endif
     tcpip_init(NULL, NULL);
@@ -290,8 +294,12 @@ static void vWebTask( void *pvParameters )
     printf("IP address:      %s\n", ip4addr_ntoa(&(*netif).ip_addr));
     printf("Subnet mask:     %s\n", ip4addr_ntoa(&(*netif).netmask));
     printf("Default gateway: %s\n", ip4addr_ntoa(&(*netif).gw));
-        
-    http_server_socket_init();
+
+    // This does not start task
+    // http_server_socket_init();
+
+    // work around
+    http_server_socket_thread(pvParameters);
 
     vTaskSuspend( NULL );
 }
