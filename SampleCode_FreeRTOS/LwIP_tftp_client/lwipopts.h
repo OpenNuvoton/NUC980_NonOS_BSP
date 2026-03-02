@@ -56,7 +56,7 @@
 // Needs 2 more for detect EMAC link status
 #define MEMP_NUM_SYS_TIMEOUT            2 + (LWIP_TCP + IP_REASSEMBLY + LWIP_ARP + (2*LWIP_DHCP) + LWIP_AUTOIP + LWIP_IGMP + LWIP_DNS + (PPP_SUPPORT*6*MEMP_NUM_PPP_PCB) + (LWIP_IPV6 ? (1 + LWIP_IPV6_REASS + LWIP_IPV6_MLD) : 0))
 
-#define TCPIP_THREAD_STACKSIZE          350
+#define TCPIP_THREAD_STACKSIZE          1024
 #define TCPIP_THREAD_PRIO               2
 #define TCPIP_MBOX_SIZE                 10
 #define DEFAULT_TCP_RECVMBOX_SIZE       5

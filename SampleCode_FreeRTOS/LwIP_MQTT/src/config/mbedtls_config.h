@@ -31,7 +31,9 @@
 #include "nuc980.h"
 #include "sys.h"
 
+#if defined (__CC_ARM)
 extern void * platform_alt_calloc(uint32_t , uint32_t );
+#endif
 extern void platform_alt_free(void *);
 #define MBEDTLS_PLATFORM_CALLOC_MACRO(x, y)		platform_alt_calloc(x, y)//clyu
 #define MBEDTLS_PLATFORM_FREE_MACRO(x)		    platform_alt_free(x)//clyu

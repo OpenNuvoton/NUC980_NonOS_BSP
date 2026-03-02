@@ -353,7 +353,7 @@ static void __mqtt_test(void * pv)
 //static
 void mqtt_test_init(void)
 {
-    xTaskCreate(__mqtt_test, "MQTT TLS", 1000, NULL, 2, &subs_tsk_handle);//stack size is 1000*4 at least
+    xTaskCreate(__mqtt_test, "MQTT TLS", 1024, NULL, 2, &subs_tsk_handle);//stack size is 1000*4 at least
 }
 
 void mbedtls_test_init(void)

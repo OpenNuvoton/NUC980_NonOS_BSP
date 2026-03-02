@@ -13,7 +13,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 #define WEBSERVER_THREAD_PRIO    ( tskIDLE_PRIORITY + 2UL )
-#define WEBSERVER_THREAD_STACKSIZE  200
+#define WEBSERVER_THREAD_STACKSIZE  1024
 #define RX_BUFFER_LEN               1460
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/

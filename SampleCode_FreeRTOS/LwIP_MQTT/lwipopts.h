@@ -53,10 +53,12 @@
 #define LWIP_RAND                       xTaskGetTickCount
 
 #ifdef __GNUC__
+#include <sys/time.h>
+#define _timeval timeval
 #define LWIP_TIMEVAL_PRIVATE            0
 #endif
 
-#define TCPIP_THREAD_STACKSIZE          350
+#define TCPIP_THREAD_STACKSIZE          1024
 #define TCPIP_THREAD_PRIO               2
 #define TCPIP_MBOX_SIZE                 15//10//clyu
 #define DEFAULT_TCP_RECVMBOX_SIZE       5

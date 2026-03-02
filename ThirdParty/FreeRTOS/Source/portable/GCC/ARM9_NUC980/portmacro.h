@@ -135,9 +135,8 @@ extern void vTaskSwitchContext(void);						 \
 		}													 \
 }															 \
 
-#define portYIELD() asm volatile ("SWI 0\n")
-
-//#define	portYIELD()	vPortYieldProcessor(){}
+#define portYIELD() \
+	asm volatile ("MOV R0, #0\n\tSWI 0\n\t" ::: "r0", "memory")
 
 /* Critical section management. */
 
@@ -261,7 +260,7 @@ extern void vPortExitCritical( void );
 /* Compiler specifics. */
 #define inline
 #define register
-#define portNOP()	__asm{ NOP }
+#define portNOP() asm volatile("NOP")
 /*-----------------------------------------------------------*/
 
 /* Task function macros as described on the FreeRTOS.org WEB site. */

@@ -10,6 +10,7 @@
 
 #if LWIP_MBEDTLS_ENABLE == 1
 #include "FreeRTOS.h"
+#include "common.h"
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/ssl.h"

@@ -12,7 +12,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 #define WEBSERVER_THREAD_PRIO    ( tskIDLE_PRIORITY + 2UL )
-#define WEBSERVER_THREAD_STACKSIZE  200
+#define WEBSERVER_THREAD_STACKSIZE  1024
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 u32_t nPageHits = 0;

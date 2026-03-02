@@ -122,13 +122,11 @@ void vPortISRStartFirstTask( void )
  * way the same restore context function can be used when restoring the context
  * saved from the ISR or that saved from a call to vPortYieldProcessor.
  */
-void vPortYieldProcessor( void )
+void __attribute__((naked)) vPortYieldProcessor( void )
 {
-	//register uint32_t num;
 	/* Within an IRQ ISR the link register has an offset from the true return
 	address, but an SWI ISR does not.  Add the offset manually so the same
 	ISR return code can be used in both cases. */
-//	asm volatile ( "ADD		LR, LR, #4" );
 
 	// SWI can come from glib call. Only do context switch if SWI is not coming from glibc
 	asm volatile (
@@ -142,7 +140,14 @@ void vPortYieldProcessor( void )
 	portSAVE_CONTEXT();
 
 	/* Find the highest priority task that is ready to run. */
-	vTaskSwitchContext();
+	asm volatile (
+		"MOV    R0, SP              \n\t" /* Save current SP to R0 */
+		"AND    SP, SP, #0xFFFFFFF8 \n\t" /* Force 8-byte alignment */
+		"STMFD  SP!, {R0, R1}       \n\t" /* Push 8 bytes (Original SP + Dummy R1) */
+		"BL     vTaskSwitchContext  \n\t" /* Safely call the C function */
+		"LDMFD  SP!, {R0, R1}       \n\t" /* Pop back into R0 and R1 */
+		"MOV    SP, R0              \n\t" /* Restore the unaligned SP */
+	);
 
 	/* Restore the context of the new task. */
 	portRESTORE_CONTEXT();
@@ -175,28 +180,15 @@ extern void systemIrqHandler(UINT32 num);
 	}
 #else  /* else preemption is turned on */
 
-	/* The preemptive scheduler is defined as "naked" as the full context is
-	saved on entry as part of the context switch. */
-	//void __attribute__ ((interrupt ("IRQ"))) vPreemptiveTick( void )
-	void  __attribute__((naked)) vPreemptiveTick( void )
+	void vPreemptiveTick_Handler( void )
 	{
-		/* Save the context of the interrupted task. */
-		portSAVE_CONTEXT();
-
-		/* WARNING - Do not use local (stack) variables here.  Use globals
-					 if you must! */
-		static uint32_t irqnum;
-
-		irqnum = inpw(REG_AIC_IRQNUM);
+		uint32_t irqnum = inpw(REG_AIC_IRQNUM);
 		if(irqnum != IRQ_TIMER5)
 		{
 			systemIrqHandler(irqnum);
 		}
 		else
 		{
-			//*(unsigned int volatile *)(0xb0070000) = 'T';
-			/* Increment the RTOS tick count, then look for the highest priority
-			task that is ready to run. */
 			if( xTaskIncrementTick() != pdFALSE )
 			{
 				vTaskSwitchContext();
@@ -207,10 +199,24 @@ extern void systemIrqHandler(UINT32 num);
 			// Acknowledge the Interrupt
 			outpw(REG_AIC_EOIS, 0x01);
 		}
+	}
 
-		/* Restore the context of the new task. */
+	/* The preemptive scheduler is defined as "naked" as the full context is
+	saved on entry as part of the context switch. */
+	void  __attribute__((naked)) vPreemptiveTick( void )
+	{
+		portSAVE_CONTEXT();
+		
+		asm volatile (
+			"MOV    R0, SP                  \n\t" 
+			"AND    SP, SP, #0xFFFFFFF8     \n\t" 
+			"STMFD  SP!, {R0, R1}           \n\t" /* Push 8 bytes! */
+			"BL     vPreemptiveTick_Handler \n\t" 
+			"LDMFD  SP!, {R0, R1}           \n\t" 
+			"MOV    SP, R0                  \n\t" 
+		);
+		
 		portRESTORE_CONTEXT();
-
 	}
 
 #endif

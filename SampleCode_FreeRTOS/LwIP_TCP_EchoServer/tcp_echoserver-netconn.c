@@ -11,7 +11,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 #define TCPECHOSERVER_THREAD_PRIO    ( tskIDLE_PRIORITY + 2UL )
-#define TCPECHOSERVER_THREAD_STACKSIZE  200
+#define TCPECHOSERVER_THREAD_STACKSIZE  1024
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 

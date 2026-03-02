@@ -272,5 +272,4 @@ static void vUdpTask( void *pvParameters )
     udp_echoserver_netconn_init();
 
     vTaskSuspend( NULL );
-
 }

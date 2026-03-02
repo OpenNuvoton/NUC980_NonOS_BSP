@@ -13,7 +13,7 @@
 
 
 #define TFTP_THREAD_PRIO    ( tskIDLE_PRIORITY + 2UL )
-#define TFTP_THREAD_STACKSIZE  200
+#define TFTP_THREAD_STACKSIZE  1024
 
 #ifndef MIN
 #define MIN(a, b)   (a) < (b) ? (a) : (b)
@@ -151,12 +151,11 @@ void send_wrq(void)
   */
 static void tftp_thread(void *arg)
 {
-
     err_t err;
     struct netbuf *nbuf;
     uint8_t *data, *payload;
-    ip_addr_t *addr;
-    unsigned short port;
+    ip_addr_t *get_addr;
+    unsigned short get_port;
     uint16_t payload_len;
 
     uint16_t state = TFTP_STATE_IDLE;
@@ -178,237 +177,239 @@ static void tftp_thread(void *arg)
         while(1);
     }
 
-    printf("Select your option 1)get, 2)put\n");
-    while(1)
-    {
-        c = getchar();
-        if(c == '1' || c == '2')
-            break;
-    }
-    if(c == '1')
-    {
-        printf("You select get file from server\n");
-        state = TFTP_STATE_RRQ;
-        send_rrq();
-    }
-    else
-    {
-        printf("You select put file to server\n");
-        state = TFTP_STATE_WRQ;
-        send_wrq();
-    }
-
-    while(!done)
-    {
-        err = netconn_recv(conn, &nbuf);
-        if(err == ERR_TIMEOUT)
+    do {
+        blk = 0;
+        done = 0;
+        first = 1;
+        printf("Select your option 1)get, 2)put\n");
+        while(1)
         {
-            if(state == TFTP_STATE_IDLE)
-                continue;
-
-            if(++retry > TFTP_MAX_RETRIES)
-            {
-                printf("Exceed retry count, reset to idle state\n");
-                retry = 0;
-                state = TFTP_STATE_IDLE;
-                done = 1;
-                continue;
-            }
-            /* Packet was likely lost */
-            if(state == TFTP_STATE_RRQ)
-            {
-                if(first)
-                {
-                    printf("Timeout, resend RRQ %d\n", retry);
-                    send_rrq();
-                }
-                else
-                {
-                    printf("Timeout, resend data %d\n", retry);
-                    send_data(blk, (void *)data, MIN(remain, TFTP_BLOCK_LENGTH));
-                }
-                continue;
-            }
-            else if (state == TFTP_STATE_WRQ)
-            {
-                if(first)
-                {
-                    printf("Timeout, resend WRQ %d\n", retry);
-                    send_wrq();
-                }
-                else
-                {
-                    printf("Timeout, resend ack %d\n", retry);
-                    send_ack(blk);
-                }
-                continue;
-            }
+            c = getchar();
+            if(c == '1' || c == '2')
+                break;
         }
-        else if(err != ERR_OK)
+        if(c == '1')
         {
-            continue;
+            printf("You select get file from server\n");
+            state = TFTP_STATE_RRQ;
+            send_rrq();
+        }
+        else
+        {
+            printf("You select put file to server\n");
+            state = TFTP_STATE_WRQ;
+            send_wrq();
         }
 
-        retry = 0;
-
-        /* Get destination IP address and port*/
-        addr = netbuf_fromaddr(nbuf);
-        port = netbuf_fromport(nbuf);
-        /* Get the payload and length */
-        netbuf_data(nbuf, (void**)&payload, &payload_len);
-
-        op = lwip_ntohs(*(uint16_t *)payload);
-        if(memcmp(addr, &server_addr, sizeof(ip_addr_t)))
+        while(!done)
         {
-            // Ignore everything not coming from server.
-            // Server may select other port to complete the service, so check address only
-            netbuf_delete(nbuf);
-            continue;
-        }
+            err = netconn_recv(conn, &nbuf);
+            if(err == ERR_TIMEOUT)
+            {
+                if(state == TFTP_STATE_IDLE)
+                    continue;
 
-        switch(op)
-        {
-            case TFTP_OPCODE_DATA:
-                if(state != TFTP_STATE_RRQ)
+                if(++retry > TFTP_MAX_RETRIES)
                 {
-                    send_err(TFTP_ERROR_ILLEGAL_OPERATION);
+                    printf("Exceed retry count, reset to idle state\n");
+                    retry = 0;
                     state = TFTP_STATE_IDLE;
                     done = 1;
+                    continue;
                 }
-                else
+                /* Packet was likely lost */
+                if(state == TFTP_STATE_RRQ)
                 {
-                    uint16_t new_blk = lwip_ntohs(*(uint16_t *)(payload + 2));
-
-
-                    if(new_blk == blk)
+                    if(first)
                     {
-                        /* Last ACK lost */
-                        send_ack(blk);
-                    }
-                    else if(new_blk == blk + 1)
-                    {
-                        int i;
-                        uint8_t *c = payload + 4;
-
-                        if(first)
-                        {
-                            // Server may select other port to complete the service
-                            server_port = port;
-                            first = 0;
-                        }
-                        // Dump received data */
-                        for(i = 0; i < payload_len - 4; i++)
-                        {
-                            if((i & 0xF) == 0)
-                                printf("\n");
-                            printf("%02x ", *c++);
-                        }
-
-                        blk = new_blk;
-                        send_ack(blk);
-                        if(payload_len < TFTP_BLOCK_LENGTH + 4)
-                        {
-                            /* This is the last data packet, all done */
-                            printf("Done\n");
-                            done = 1;
-                            state = TFTP_STATE_IDLE;
-                        }
+                        printf("Timeout, resend RRQ %d\n", retry);
+                        send_rrq();
                     }
                     else
                     {
-                        /* Wrong ack # */
-                        printf("Unknown ID number\n");
-                        send_err(TFTP_ERROR_UNKNOWN_ID);
+                        printf("Timeout, resend data %d\n", retry);
+                        send_data(blk, (void *)data, MIN(remain, TFTP_BLOCK_LENGTH));
+                    }
+                    continue;
+                }
+                else if (state == TFTP_STATE_WRQ)
+                {
+                    if(first)
+                    {
+                        printf("Timeout, resend WRQ %d\n", retry);
+                        send_wrq();
+                    }
+                    else
+                    {
+                        printf("Timeout, resend ack %d\n", retry);
+                        send_ack(blk);
+                    }
+                    continue;
+                }
+            }
+            else if(err != ERR_OK)
+            {
+                continue;
+            }
+
+            retry = 0;
+
+            /* Get destination IP address and port*/
+            get_addr = netbuf_fromaddr(nbuf);
+            get_port = netbuf_fromport(nbuf);
+            /* Get the payload and length */
+            netbuf_data(nbuf, (void**)&payload, &payload_len);
+
+            op = lwip_ntohs(*(uint16_t *)payload);
+            if(memcmp(get_addr, &server_addr, sizeof(ip_addr_t)))
+            {
+                // Ignore everything not coming from server.
+                // Server may select other port to complete the service, so check address only
+                netbuf_delete(nbuf);
+                continue;
+            }
+
+            switch(op)
+            {
+                case TFTP_OPCODE_DATA:
+                    if(state != TFTP_STATE_RRQ)
+                    {
+                        send_err(TFTP_ERROR_ILLEGAL_OPERATION);
                         state = TFTP_STATE_IDLE;
                         done = 1;
                     }
-                }
-                break;
-
-            case TFTP_OPCODE_ACK:
-                if(state != TFTP_STATE_WRQ)
-                {
-                    send_err(TFTP_ERROR_ILLEGAL_OPERATION);
-                    state = TFTP_STATE_IDLE;
-                    done = 1;
-                }
-                else
-                {
-                    uint16_t new_blk = lwip_ntohs(*(uint16_t *)(payload + 2));
-
-                    if(first)
+                    else
                     {
-                        if(new_blk != 0)
+                        uint16_t new_blk = lwip_ntohs(*(uint16_t *)(payload + 2));
+
+                        if(new_blk == blk)
                         {
-                            /* Ack block # for WRQ must be 0 */
+                            /* Last ACK lost */
+                            send_ack(blk);
+                        }
+                        else if(new_blk == blk + 1)
+                        {
+                            int i;
+                            uint8_t *c = payload + 4;
+
+                            if(first)
+                            {
+                                // Server may select other port to complete the service
+                                server_port = get_port;
+                                first = 0;
+                            }
+                            // Dump received data */
+                            for(i = 0; i < payload_len - 4; i++)
+                            {
+                                if((i & 0xF) == 0)
+                                    printf("\n");
+                                printf("%02x ", *c++);
+                            }
+
+                            blk = new_blk;
+                            send_ack(blk);
+                            if(payload_len < TFTP_BLOCK_LENGTH + 4)
+                            {
+                                /* This is the last data packet, all done */
+                                printf("Done\n");
+                                done = 1;
+                                state = TFTP_STATE_IDLE;
+                            }
+                        }
+                        else
+                        {
+                            /* Wrong ack # */
                             printf("Unknown ID number\n");
                             send_err(TFTP_ERROR_UNKNOWN_ID);
                             state = TFTP_STATE_IDLE;
                             done = 1;
                         }
-                        else
-                        {
-                            // Server may select other port to complete the service
-                            server_port = port;
-                            remain = flen;
-                            data = file;
-                            blk++;
-                            printf(".");
-                            first = 0;
-                            send_data(blk, data, MIN(remain, TFTP_BLOCK_LENGTH));
-                        }
                     }
-                    if(new_blk == (blk - 1))
+                    break;
+
+                case TFTP_OPCODE_ACK:
+                    if(state != TFTP_STATE_WRQ)
                     {
-                        /* Last packet was lost */
-                        send_data(blk, data, MIN(remain, TFTP_BLOCK_LENGTH));
-                    }
-                    else if(new_blk == blk)
-                    {
-                        remain -= TFTP_BLOCK_LENGTH;
-                        if(remain < 0)  /* Still need to send a 0 data packet if remain is 0 */
-                        {
-                            /* All done */
-                            printf("\nDone\n");
-                            done = 1;
-                            state = TFTP_STATE_IDLE;
-                        }
-                        else
-                        {
-                            blk++;
-                            data += TFTP_BLOCK_LENGTH;
-                            printf(".");
-                            send_data(blk, data, MIN(remain, TFTP_BLOCK_LENGTH));
-                        }
-                    }
-                    else
-                    {
-                        /* Wrong ack # */
-                        printf("Unknown ID number\n");
-                        send_err(TFTP_ERROR_UNKNOWN_ID);
+                        send_err(TFTP_ERROR_ILLEGAL_OPERATION);
                         state = TFTP_STATE_IDLE;
                         done = 1;
                     }
-                }
-                break;
-            case TFTP_OPCODE_ERROR:
-                /* Reset to idle state on error */
-                state = TFTP_STATE_IDLE;
-                done = 1;
-                printf("Received ERR: %d\n", lwip_ntohs(*(uint16_t *)(payload + 2)));
-                break;
-            default:
-                /* Reset to idle state if recevied unknown op code */
-                printf("Received unknown op code\n");
-                send_err(TFTP_ERROR_ILLEGAL_OPERATION);
-                state = TFTP_STATE_IDLE;
-                done = 1;
-                break;
-        }
+                    else
+                    {
+                        uint16_t new_blk = lwip_ntohs(*(uint16_t *)(payload + 2));
 
-        netbuf_delete(nbuf);
-    }
-    while(1);
+                        if(first)
+                        {
+                            if(new_blk != 0)
+                            {
+                                /* Ack block # for WRQ must be 0 */
+                                printf("Unknown ID number\n");
+                                send_err(TFTP_ERROR_UNKNOWN_ID);
+                                state = TFTP_STATE_IDLE;
+                                done = 1;
+                            }
+                            else
+                            {
+                                // Server may select other port to complete the service
+                                server_port = get_port;
+                                remain = flen;
+                                data = file;
+                                blk++;
+                                first = 0;
+                                send_data(blk, data, MIN(remain, TFTP_BLOCK_LENGTH));
+                            }
+                        }
+                        else if(new_blk == (blk - 1))
+                        {
+                            /* Last packet was lost */
+                            send_data(blk, data, MIN(remain, TFTP_BLOCK_LENGTH));
+                        }
+                        else if(new_blk == blk)
+                        {
+                            remain -= TFTP_BLOCK_LENGTH;
+                            if(remain < 0)  /* Still need to send a 0 data packet if remain is 0 */
+                            {
+                                /* All done */
+                                printf("\nDone\n");
+                                done = 1;
+                                state = TFTP_STATE_IDLE;
+                            }
+                            else
+                            {
+                                blk++;
+                                data += TFTP_BLOCK_LENGTH;
+                                printf(".");
+                                send_data(blk, data, MIN(remain, TFTP_BLOCK_LENGTH));
+                            }
+                        }
+                        else
+                        {
+                            /* Wrong ack # */
+                            printf("Unknown ID number\n");
+                            send_err(TFTP_ERROR_UNKNOWN_ID);
+                            state = TFTP_STATE_IDLE;
+                            done = 1;
+                        }
+                    }
+                    break;
+                case TFTP_OPCODE_ERROR:
+                    /* Reset to idle state on error */
+                    state = TFTP_STATE_IDLE;
+                    done = 1;
+                    printf("Received ERR: %d\n", lwip_ntohs(*(uint16_t *)(payload + 2)));
+                    break;
+                default:
+                    /* Reset to idle state if recevied unknown op code */
+                    printf("Received unknown op code\n");
+                    send_err(TFTP_ERROR_ILLEGAL_OPERATION);
+                    state = TFTP_STATE_IDLE;
+                    done = 1;
+                    break;
+            }
+
+            netbuf_delete(nbuf);
+        }
+    } while(1);
 }
 
 /**

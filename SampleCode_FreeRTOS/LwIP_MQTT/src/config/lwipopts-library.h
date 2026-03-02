@@ -117,7 +117,7 @@
 /**
  * LWIP_DHCP==1: Enable DHCP module.
  */
-#define LWIP_DHCP                       0 //clyu
+#define LWIP_DHCP                       1 //clyu
 
 /**
  * LWIP_DNS==1: Turn on DNS module. UDP must be available for DNS

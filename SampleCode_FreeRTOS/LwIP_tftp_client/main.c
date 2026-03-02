@@ -136,14 +136,6 @@ int main(void)
 
     xTaskCreate( vNetTask, "NetTask", TCPIP_THREAD_STACKSIZE, NULL, mainCHECK_TASK_PRIORITY, NULL );
 
-
-    //vStartBlockingQueueTasks( mainBLOCK_Q_PRIORITY );
-    vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY );
-    vStartSemaphoreTasks( mainSEM_TEST_PRIORITY );
-    vStartGenericQueueTasks( tskIDLE_PRIORITY );
-    vStartQueueSetTasks();
-
-
     printf("FreeRTOS is starting ...\n");
 
     /* Start the scheduler. */

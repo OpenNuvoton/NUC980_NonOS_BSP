@@ -11,7 +11,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 #define UDPECHOCLIENT_THREAD_PRIO    ( tskIDLE_PRIORITY + 2UL )
-#define UDPECHOCLIENT_THREAD_STACKSIZE  200
+#define UDPECHOCLIENT_THREAD_STACKSIZE  1024
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 char au8Buf[1500];

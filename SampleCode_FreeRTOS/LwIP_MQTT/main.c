@@ -125,7 +125,9 @@ information. */
 static void prvSetupHardware( void );
 /*-----------------------------------------------------------*/
 
+#if defined (__CC_ARM)
 int errno;
+#endif
 volatile int  g_Crypto_Int_done = 0;
 unsigned char my_mac_addr0[6] = {0x00, 0x00, 0x00, 0x55, 0x66, 0x77};
 unsigned char my_mac_addr1[6] = {0x00, 0x00, 0x00, 0xAA, 0xBB, 0xCC};
@@ -145,13 +147,6 @@ int main(void)
     prvSetupHardware();
 
     xTaskCreate( vMqttTask, "MQTT", TCPIP_THREAD_STACKSIZE, NULL, mainCHECK_TASK_PRIORITY, NULL );//350
-
-    //vStartBlockingQueueTasks( mainBLOCK_Q_PRIORITY );
-    vStartPolledQueueTasks( mainQUEUE_POLL_PRIORITY );
-    vStartSemaphoreTasks( mainSEM_TEST_PRIORITY );
-    vStartGenericQueueTasks( tskIDLE_PRIORITY );
-    vStartQueueSetTasks();
-
 
     printf("FreeRTOS is starting ...\n");
 
