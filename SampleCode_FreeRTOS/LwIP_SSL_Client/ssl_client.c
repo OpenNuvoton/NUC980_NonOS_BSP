@@ -42,25 +42,30 @@
 #endif /* MBEDTLS_PLATFORM_C */
 
 
-#include "mbedtls/net_sockets.h"
-#include "mbedtls/debug.h"
-#include "mbedtls/ssl.h"
+#include <stdlib.h>
+#include <string.h>
+
+#include "FreeRTOS.h"
+#include "task.h"
+
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
-#include "mbedtls/error.h"
 #include "test/certs.h"
-
-#include <string.h>
+#include "mbedtls/x509.h"
+#include "mbedtls/ssl.h"
+#include "mbedtls/net_sockets.h"
+#include "mbedtls/error.h"
+#include "mbedtls/debug.h"
 
 #define SERVER_PORT "443"
 #define SERVER_NAME "192.168.1.2"
 #define HOST_NAME "localhost"
 #define GET_REQUEST "GET / HTTP/1.0\r\n\r\n"
 
-#define DEBUG_LEVEL 1
+//#define DEBUG_LEVEL 4
 
 #define SSLCLIENT_THREAD_PRIO    ( tskIDLE_PRIORITY + 2UL )
-#define SSLCLIENT_THREAD_STACKSIZE  2000
+#define SSLCLIENT_THREAD_STACKSIZE  2048
 
 #if defined(MBEDTLS_CHECK_PARAMS)
 #include "mbedtls/platform_util.h"
@@ -91,6 +96,18 @@ mbedtls_ssl_config conf;
 mbedtls_x509_crt cacert;
 unsigned char buf[1024];
 
+#if defined (__GNUC__)
+static void *mbedtls_calloc_wrapper( size_t n, size_t size )
+{
+    void *ptr = pvPortMalloc( n * size );
+    if( ptr != NULL )
+    {
+        memset( ptr, 0, n * size );
+    }
+    return ptr;
+}
+#endif
+
 static void ssl_main(void *arg)
 {
     int ret = 1, len;
@@ -100,7 +117,9 @@ static void ssl_main(void *arg)
 
     const char *pers = "ssl_client1";
 
-
+#if defined (__GNUC__)
+    mbedtls_platform_set_calloc_free( mbedtls_calloc_wrapper, vPortFree );
+#endif
 
 #if defined(MBEDTLS_DEBUG_C)
     mbedtls_debug_set_threshold( DEBUG_LEVEL );

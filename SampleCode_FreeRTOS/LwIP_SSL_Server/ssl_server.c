@@ -26,28 +26,24 @@
 #else
 #include MBEDTLS_CONFIG_FILE
 #endif
-#define MBEDTLS_PLATFORM_C
+
 #if defined(MBEDTLS_PLATFORM_C)
 #include "mbedtls/platform.h"
 #else
 #include <stdio.h>
 #include <stdlib.h>
-#define mbedtls_time       time
-#define mbedtls_time_t     time_t
-#define mbedtls_fprintf    fprintf
-#define mbedtls_printf     printf
+#define mbedtls_time            time
+#define mbedtls_time_t          time_t
+#define mbedtls_fprintf         fprintf
+#define mbedtls_printf          printf
 #define mbedtls_exit            exit
 #define MBEDTLS_EXIT_SUCCESS    EXIT_SUCCESS
 #define MBEDTLS_EXIT_FAILURE    EXIT_FAILURE
-#endif
+#endif /* MBEDTLS_PLATFORM_C */
 
 
 #include <stdlib.h>
 #include <string.h>
-
-#if defined(_WIN32)
-#include <windows.h>
-#endif
 
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
@@ -67,10 +63,10 @@
     "<h2>mbed TLS Test Server</h2>\r\n" \
     "<p>Successful connection using: %s</p>\r\n"
 
-#define DEBUG_LEVEL 4
+//#define DEBUG_LEVEL 4
 
 #define SSLSERVER_THREAD_PRIO    ( tskIDLE_PRIORITY + 2UL )
-#define SSLSERVER_THREAD_STACKSIZE  2000
+#define SSLSERVER_THREAD_STACKSIZE  2048
 
 #if defined(MBEDTLS_CHECK_PARAMS)
 #include "mbedtls/platform_util.h"
@@ -105,11 +101,27 @@ mbedtls_pk_context pkey;
 mbedtls_ssl_cache_context cache;
 #endif
 
+#if defined (__GNUC__)
+static void *mbedtls_calloc_wrapper( size_t n, size_t size )
+{
+    void *ptr = pvPortMalloc( n * size );
+    if( ptr != NULL )
+    {
+        memset( ptr, 0, n * size );
+    }
+    return ptr;
+}
+#endif
+
 static void ssl_main(void *arg)
 {
     int ret, len;
     mbedtls_net_context listen_fd, client_fd;
     const char *pers = "ssl_server";
+
+#if defined (__GNUC__)
+    mbedtls_platform_set_calloc_free( mbedtls_calloc_wrapper, vPortFree );
+#endif
 
     mbedtls_net_init( &listen_fd );
     mbedtls_net_init( &client_fd );
