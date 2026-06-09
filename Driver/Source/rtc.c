@@ -798,6 +798,30 @@ void RTC_Check(void)
     }
 }
 
+int RTC_WriteSpareRegister(RTC_SPARE_REG_E eReg, uint32_t u32Data)
+{
+    if (eReg >= RTC_SPR_MAX)
+        return -1;
+
+    RTC_WaitAccessEnable();
+
+    outpw(REG_RTC_SPR0 + ((uint32_t)eReg << 2), u32Data);
+
+    return 1;
+}
+
+int RTC_ReadSpareRegister(RTC_SPARE_REG_E eReg, uint32_t *pu32Data)
+{
+    if ((eReg >= RTC_SPR_MAX) || (pu32Data == NULL))
+        return 0;
+
+    RTC_WaitAccessEnable();
+
+    *pu32Data = inpw(REG_RTC_SPR0 + ((uint32_t)eReg << 2));
+
+    return 1;
+}
+
 
 /*@}*/ /* end of group RTC_EXPORTED_FUNCTIONS */
 

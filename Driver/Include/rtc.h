@@ -129,6 +129,31 @@ typedef struct
     uint32_t SPR[16];               /*!< [0x0040] ~ [0x007c] RTC Spare Register 0 ~ 15                             */
 } RTC_T;
 
+/**
+  * @brief RTC Spare Register index definitions.
+  */
+typedef enum
+{
+    RTC_SPR0,      	   /*!< Spare register 0  */
+    RTC_SPR1,          /*!< Spare register 1  */
+    RTC_SPR2,          /*!< Spare register 2  */
+    RTC_SPR3,          /*!< Spare register 3  */
+    RTC_SPR4,          /*!< Spare register 4  */
+    RTC_SPR5,          /*!< Spare register 5  */
+    RTC_SPR6,          /*!< Spare register 6  */
+    RTC_SPR7,          /*!< Spare register 7  */
+    RTC_SPR8,          /*!< Spare register 8  */
+    RTC_SPR9,          /*!< Spare register 9  */
+    RTC_SPR10,         /*!< Spare register 10 */
+    RTC_SPR11,         /*!< Spare register 11 */
+    RTC_SPR12,         /*!< Spare register 12 */
+    RTC_SPR13,         /*!< Spare register 13 */
+    RTC_SPR14,         /*!< Spare register 14 */
+    RTC_SPR15,         /*!< Spare register 15 */
+
+    RTC_SPR_MAX        /*!< Number of spare registers (not a valid index) */
+} RTC_SPARE_REG_E;
+
 #define RTC_INIT_ACTIVE_Pos         (0)                                               /*!< RTC_T::INIT: INIT_ACTIVE Position      */
 #define RTC_INIT_ACTIVE_Msk         (0x1ul << RTC_INIT_ACTIVE_Pos)               /*!< RTC_T::INIT: INIT_ACTIVE Mask          */
 
@@ -427,6 +452,8 @@ void RTC_SetTime(uint32_t u32Hour, uint32_t u32Minute, uint32_t u32Second, uint3
 void RTC_SetAlarmDate(uint32_t u32Year, uint32_t u32Month, uint32_t u32Day, uint32_t u32DayOfWeek);
 void RTC_SetAlarmTime(uint32_t u32Hour, uint32_t u32Minute, uint32_t u32Second, uint32_t u32TimeMode, uint32_t u32AmPm);
 uint32_t RTC_GetDayOfWeek(void);
+int RTC_ReadSpareRegister(RTC_SPARE_REG_E eReg, uint32_t *pu32Data);
+int RTC_WriteSpareRegister(RTC_SPARE_REG_E eReg, uint32_t u32Data);
 void RTC_SetTickPeriod(uint32_t u32TickSelection);
 void RTC_EnableInt(uint32_t u32IntFlagMask);
 void RTC_DisableInt(uint32_t u32IntFlagMask);
